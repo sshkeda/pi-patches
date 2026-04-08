@@ -1,0 +1,83 @@
+[
+  {
+    "id": "001-osc8-markdown-links",
+    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "intent": "Wrap markdown links in OSC 8 hyperlink sequences so they are clickable and copy-pasteable even when they wrap across multiple terminal lines.",
+    "find": "if (token.text === token.href || token.text === hrefForComparison) {\n                        result += this.theme.link(this.theme.underline(linkText)) + stylePrefix;\n                    }\n                    else {\n                        result +=\n                            this.theme.link(this.theme.underline(linkText)) +\n                                this.theme.linkUrl(` (${token.href})`) +\n                                stylePrefix;\n                    }",
+    "replace": "if (token.text === token.href || token.text === hrefForComparison) {\n                        result += `\\x1b]8;;${token.href}\\x07` + this.theme.link(this.theme.underline(linkText)) + `\\x1b]8;;\\x07` + stylePrefix;\n                    }\n                    else {\n                        result +=\n                            `\\x1b]8;;${token.href}\\x07` + this.theme.link(this.theme.underline(linkText)) + this.theme.linkUrl(` (${token.href})`) + `\\x1b]8;;\\x07` +\n                                stylePrefix;\n                    }",
+    "verify": "\\x1b]8;;${token.href}\\x07",
+    "occurrences": 1
+  },
+  {
+    "id": "002-osc8-tracker-state",
+    "file": "node_modules/@mariozechner/pi-tui/dist/utils.js",
+    "intent": "Add OSC 8 hyperlink URL tracking to AnsiCodeTracker so wrapTextWithAnsi re-opens hyperlinks on continuation lines when a link wraps across multiple terminal lines.",
+    "find": "    fgColor = null; // Stores the full code like \"31\" or \"38;5;240\"\n    bgColor = null; // Stores the full code like \"41\" or \"48;5;240\"\n    process(ansiCode) {\n        if (!ansiCode.endsWith(\"m\")) {\n            return;",
+    "replace": "    fgColor = null; // Stores the full code like \"31\" or \"38;5;240\"\n    bgColor = null; // Stores the full code like \"41\" or \"48;5;240\"\n    oscHyperlink = null; // Stores the current OSC 8 hyperlink URL\n    process(ansiCode) {\n        // Track OSC 8 hyperlink sequences: \\x1b]8;;URL\\x07 or \\x1b]8;;\\x07 (close)\n        const oscMatch = ansiCode.match(/\\x1b\\]8;([^;]*);([\\s\\S]*)(?:\\x07|\\x1b\\\\)/);\n        if (oscMatch) {\n            this.oscHyperlink = oscMatch[2] || null;\n            return;\n        }\n        if (!ansiCode.endsWith(\"m\")) {\n            return;",
+    "verify": "oscHyperlink = null;",
+    "occurrences": 1
+  },
+  {
+    "id": "003-osc8-tracker-reset",
+    "file": "node_modules/@mariozechner/pi-tui/dist/utils.js",
+    "intent": "Clear OSC 8 hyperlink state when AnsiCodeTracker is reset.",
+    "find": "        this.fgColor = null;\n        this.bgColor = null;\n    }\n    /** Clear all state for reuse. */",
+    "replace": "        this.fgColor = null;\n        this.bgColor = null;\n        this.oscHyperlink = null;\n    }\n    /** Clear all state for reuse. */",
+    "verify": "this.oscHyperlink = null;\n    }\n    /** Clear all state for reuse. */",
+    "occurrences": 1
+  },
+  {
+    "id": "004-osc8-tracker-getactivecodes",
+    "file": "node_modules/@mariozechner/pi-tui/dist/utils.js",
+    "intent": "Include OSC 8 hyperlink opener in getActiveCodes() so wrapped lines re-open the clickable link.",
+    "find": "        if (codes.length === 0)\n            return \"\";\n        return `\\x1b[${codes.join(\";\")}m`;\n    }",
+    "replace": "        const sgrPrefix = codes.length === 0 ? \"\" : `\\x1b[${codes.join(\";\")}m`;\n        const oscPrefix = this.oscHyperlink ? `\\x1b]8;;${this.oscHyperlink}\\x07` : \"\";\n        return oscPrefix + sgrPrefix;\n    }",
+    "verify": "const oscPrefix = this.oscHyperlink",
+    "occurrences": 1
+  },
+  {
+    "id": "005-osc8-tracker-hasactivecodes",
+    "file": "node_modules/@mariozechner/pi-tui/dist/utils.js",
+    "intent": "Include OSC 8 hyperlink in hasActiveCodes() check so the tracker knows there is active state to restore.",
+    "find": "            this.fgColor !== null ||\n            this.bgColor !== null);",
+    "replace": "            this.fgColor !== null ||\n            this.bgColor !== null ||\n            this.oscHyperlink !== null);",
+    "verify": "this.oscHyperlink !== null);",
+    "occurrences": 1
+  },
+  {
+    "id": "007-osc8-codespan-urls",
+    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "intent": "Wrap URLs inside inline code spans (`url`) with OSC 8 so they are clickable even when they wrap across terminal lines.",
+    "find": "case \"codespan\":\n                    result += this.theme.code(token.text) + stylePrefix;\n                    break;",
+    "replace": "case \"codespan\":\n                    if (/^https?:\\/\\//.test(token.text)) {\n                        result += `\\x1b]8;;${token.text}\\x07` + this.theme.code(token.text) + `\\x1b]8;;\\x07` + stylePrefix;\n                    } else {\n                        result += this.theme.code(token.text) + stylePrefix;\n                    }\n                    break;",
+    "verify": "\\x1b]8;;${token.text}\\x07",
+    "occurrences": 1
+  },
+  {
+    "id": "008-osc8-codeblock-hlline",
+    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "intent": "Wrap highlighted code lines that are URLs with OSC 8 in code blocks (both top-level and list-item).",
+    "find": "lines.push(`${indent}${hlLine}`);",
+    "replace": "{ const __raw = hlLine.replace(/\\x1b\\[[^m]*m/g, '').trim(); lines.push(__raw.match(/^https?:\\/\\/\\S+$/) ? `${indent}\\x1b]8;;${__raw}\\x07${hlLine}\\x1b]8;;\\x07` : `${indent}${hlLine}`); }",
+    "verify": "__raw.match(/^https?:",
+    "occurrences": 2
+  },
+  {
+    "id": "009-osc8-codeblock-codeline",
+    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "intent": "Wrap plain code lines that are URLs with OSC 8 in code blocks (both top-level and list-item).",
+    "find": "lines.push(`${indent}${this.theme.codeBlock(codeLine)}`);",
+    "replace": "{ const __styled = this.theme.codeBlock(codeLine); lines.push(codeLine.trim().match(/^https?:\\/\\/\\S+$/) ? `${indent}\\x1b]8;;${codeLine.trim()}\\x07${__styled}\\x1b]8;;\\x07` : `${indent}${__styled}`); }",
+    "verify": "codeLine.trim().match(/^https?:",
+    "occurrences": 2
+  },
+  {
+    "id": "006-osc8-update-banner",
+    "file": "dist/modes/interactive/interactive-mode.js",
+    "intent": "Wrap the changelog URL in the update notification banner with OSC 8 so it is clickable even when wrapped across lines.",
+    "find": "const changelogUrl = theme.fg(\"accent\", \"https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\");",
+    "replace": "const changelogRawUrl = \"https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\"; const changelogUrl = `\\x1b]8;;${changelogRawUrl}\\x07` + theme.fg(\"accent\", changelogRawUrl) + `\\x1b]8;;\\x07`;",
+    "verify": "changelogRawUrl",
+    "occurrences": 1
+  }
+]
