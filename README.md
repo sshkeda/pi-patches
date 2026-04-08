@@ -12,6 +12,8 @@ bash apply.sh
 bash test.sh
 ```
 
+> **Note:** Patches need to be re-applied after every pi update since `npm install -g` replaces node_modules.
+
 ## What it patches
 
 | Patch | File | What |
