@@ -257,6 +257,70 @@ function assert(name, condition, detail) {
   }
 }
 
+// ── Test 10: URL in code block (highlighted) gets OSC 8 ──
+{
+  const theme2 = {
+    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
+    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
+    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
+    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
+    highlightCode: (c,l)=>c.split("\n"), tableBorder: s=>s,
+  };
+
+  const url = "https://example.com/very/long/path/in/code/block";
+  const md = new Markdown("" + String.fromCharCode(96,96,96) + "\n" + url + "\n" + String.fromCharCode(96,96,96), 0, 0, theme2);
+  const lines = md.render(120);
+  const output = lines.join("");
+
+  assert(
+    "URL in code block (highlighted) gets OSC 8",
+    output.includes("\x1b]8;;" + url + "\x07"),
+    "Output: " + JSON.stringify(output)
+  );
+}
+
+// ── Test 11: URL in code block (plain) gets OSC 8 ──
+{
+  const theme2 = {
+    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
+    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
+    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
+    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
+    highlightCode: null, tableBorder: s=>s,
+  };
+
+  const url = "https://example.com/plain/code/block";
+  const md = new Markdown("" + String.fromCharCode(96,96,96) + "\n" + url + "\n" + String.fromCharCode(96,96,96), 0, 0, theme2);
+  const lines = md.render(120);
+  const output = lines.join("");
+
+  assert(
+    "URL in code block (plain) gets OSC 8",
+    output.includes("\x1b]8;;" + url + "\x07"),
+    "Output: " + JSON.stringify(output)
+  );
+}
+
+// ── Test 12: Non-URL code block line has no OSC 8 ──
+{
+  const theme2 = {
+    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
+    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
+    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
+    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
+    highlightCode: (c,l)=>c.split("\n"), tableBorder: s=>s,
+  };
+
+  const md = new Markdown("" + String.fromCharCode(96,96,96) + "\nconst x = 5;\n" + String.fromCharCode(96,96,96), 0, 0, theme2);
+  const output = md.render(80).join("");
+
+  assert(
+    "Non-URL code block has no OSC 8",
+    !output.includes("\x1b]8;;"),
+    "Output: " + JSON.stringify(output)
+  );
+}
+
 // ── Summary ──
 console.log("");
 console.log("→ " + passed + " passed, " + failed + " failed");
