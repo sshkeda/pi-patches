@@ -321,6 +321,191 @@ function assert(name, condition, detail) {
   );
 }
 
+// ── Test 13: OpenRouter audio is routed as input_audio ──
+{
+  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
+  const model = {
+    provider: "openrouter",
+    api: "openai-completions",
+    id: "google/gemini-3.1-pro-preview",
+    baseUrl: "https://openrouter.ai/api/v1",
+    input: ["text", "image"],
+  };
+  const compat = {
+    requiresAssistantAfterToolResult: false,
+    requiresToolResultName: false,
+    requiresThinkingAsText: false,
+  };
+  const messages = convertMessages(model, {
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "transcribe this" },
+          { type: "image", mimeType: "audio/mp4", data: "AAAA" },
+        ],
+      },
+    ],
+  }, compat);
+  const media = messages[0].content[1];
+  assert(
+    "OpenRouter audio uses input_audio",
+    media?.type === "input_audio" && media?.input_audio?.format === "m4a" && media?.input_audio?.data === "AAAA",
+    "Media: " + JSON.stringify(media)
+  );
+}
+
+// ── Test 14: OpenRouter video is routed as video_url ──
+{
+  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
+  const model = {
+    provider: "openrouter",
+    api: "openai-completions",
+    id: "google/gemini-3.1-pro-preview",
+    baseUrl: "https://openrouter.ai/api/v1",
+    input: ["text", "image"],
+  };
+  const compat = {
+    requiresAssistantAfterToolResult: false,
+    requiresToolResultName: false,
+    requiresThinkingAsText: false,
+  };
+  const messages = convertMessages(model, {
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "analyze this" },
+          { type: "image", mimeType: "video/mp4", data: "BBBB" },
+        ],
+      },
+    ],
+  }, compat);
+  const media = messages[0].content[1];
+  assert(
+    "OpenRouter video uses video_url",
+    media?.type === "video_url" && media?.video_url?.url === "data:video/mp4;base64,BBBB",
+    "Media: " + JSON.stringify(media)
+  );
+}
+
+// ── Test 15: OpenRouter PDF is routed as file ──
+{
+  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
+  const model = {
+    provider: "openrouter",
+    api: "openai-completions",
+    id: "google/gemini-3.1-pro-preview",
+    baseUrl: "https://openrouter.ai/api/v1",
+    input: ["text", "image"],
+  };
+  const compat = {
+    requiresAssistantAfterToolResult: false,
+    requiresToolResultName: false,
+    requiresThinkingAsText: false,
+  };
+  const messages = convertMessages(model, {
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "summarize this" },
+          { type: "image", mimeType: "application/pdf", data: "CCCC" },
+        ],
+      },
+    ],
+  }, compat);
+  const media = messages[0].content[1];
+  assert(
+    "OpenRouter PDF uses file",
+    media?.type === "file" && media?.file?.filename === "attachment.pdf" && media?.file?.file_data === "data:application/pdf;base64,CCCC",
+    "Media: " + JSON.stringify(media)
+  );
+}
+
+// ── Test 16: Tool-result audio becomes synthetic user input_audio on OpenRouter ──
+{
+  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
+  const model = {
+    provider: "openrouter",
+    api: "openai-completions",
+    id: "google/gemini-3.1-pro-preview",
+    baseUrl: "https://openrouter.ai/api/v1",
+    input: ["text", "image"],
+  };
+  const compat = {
+    requiresAssistantAfterToolResult: false,
+    requiresToolResultName: false,
+    requiresThinkingAsText: false,
+  };
+  const messages = convertMessages(model, {
+    messages: [
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call_1", name: "read", arguments: { path: "a.m4a" } }],
+        api: "openai-completions",
+        provider: "openrouter",
+        model: "google/gemini-3.1-pro-preview",
+        usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+        stopReason: "toolUse",
+        timestamp: Date.now(),
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_1",
+        toolName: "read",
+        content: [
+          { type: "text", text: "Read audio file [audio/mp4, 18.0 MB]" },
+          { type: "image", mimeType: "audio/mp4", data: "DDDD" },
+        ],
+        isError: false,
+        timestamp: Date.now(),
+      },
+    ],
+  }, compat);
+  const syntheticUser = messages[messages.length - 1];
+  const media = syntheticUser?.content?.[1];
+  assert(
+    "OpenRouter tool-result audio uses input_audio",
+    syntheticUser?.role === "user" && media?.type === "input_audio" && media?.input_audio?.format === "m4a",
+    "Synthetic user: " + JSON.stringify(syntheticUser)
+  );
+}
+
+// ── Test 17: Non-OpenRouter providers keep legacy image_url fallback ──
+{
+  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
+  const model = {
+    provider: "openai",
+    api: "openai-completions",
+    id: "gpt-4.1",
+    baseUrl: "https://api.openai.com/v1",
+    input: ["text", "image"],
+  };
+  const compat = {
+    requiresAssistantAfterToolResult: false,
+    requiresToolResultName: false,
+    requiresThinkingAsText: false,
+  };
+  const messages = convertMessages(model, {
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "legacy path" },
+          { type: "image", mimeType: "audio/mp4", data: "EEEE" },
+        ],
+      },
+    ],
+  }, compat);
+  const media = messages[0].content[1];
+  assert(
+    "Non-OpenRouter audio still falls back to image_url",
+    media?.type === "image_url" && media?.image_url?.url === "data:audio/mp4;base64,EEEE",
+    "Media: " + JSON.stringify(media)
+  );
+}
+
 // ── Summary ──
 console.log("");
 console.log("→ " + passed + " passed, " + failed + " failed");

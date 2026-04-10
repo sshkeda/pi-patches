@@ -1,16 +1,33 @@
 # pi-patches
 
-OSC 8 hyperlink patches for [pi](https://github.com/badlogic/pi-mono). Makes URLs clickable in the terminal — links, code spans, code blocks, and the update banner all get proper [OSC 8](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) sequences that survive line wrapping.
+Small install-time patches for [pi](https://github.com/badlogic/pi-mono).
+
+Today this repo patches two things directly:
+- **OSC 8 terminal hyperlinks** so wrapped links stay clickable
+- **extension-runtime tool lookup hooks** (`getToolDefinition`, `getAllRegisteredTools`) for native custom-tool integration
+
+It also acts as a patch orchestrator for sibling repos. Right now it loads the OpenRouter multimodal transport patch from:
+- **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
 
 ## Usage
 
 ```bash
-# Apply after installing or upgrading pi
-bash apply.sh
+# One-shot update: reinstall pi globally, re-apply patches, then verify them
+bash update.sh
 
-# Verify patches work
+# Or do the steps manually
+npm install -g @mariozechner/pi-coding-agent
+bash apply.sh
 bash test.sh
 ```
+
+If you add this alias to `~/.zshrc`:
+
+```bash
+alias pi-update='bash /Users/sshkeda/Documents/GitHub/pi-patches/update.sh'
+```
+
+then `pi-update` runs the same one-shot flow from any directory.
 
 > **Note:** Patches need to be re-applied after every pi update since `npm install -g` replaces node_modules.
 
@@ -23,7 +40,16 @@ bash test.sh
 | 006 | `interactive-mode.js` | Make the update banner changelog URL clickable |
 | 007 | `markdown.js` | Wrap URLs in inline code spans (`` `https://...` ``) |
 | 008–009 | `markdown.js` | Wrap URL-only lines in code blocks (highlighted + plain) |
+| 010–015 | `loader.js`, `runner.js`, `types.d.ts` | Expose extension tool lookup/runtime helpers so extensions can resolve registered tools natively by name |
+| 016–018 | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
 
 ## How it works
 
-`patches.json` defines each patch as a find/replace pair with a verify string. `apply.sh` reads the JSON, locates pi's install directory, applies all patches atomically (no files written if any patch fails), and `test.sh` validates the output.
+`update.sh` is the entrypoint for the shell alias. It:
+
+1. runs `npm install -g @mariozechner/pi-coding-agent`
+2. runs `apply.sh` to re-apply the local patches from `patches.json`
+3. runs `test.sh` to verify the patched install still behaves correctly
+
+`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (for example `../pi-read/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory, applies everything atomically (no files written if any patch fails), and `test.sh` validates both the OSC 8 behavior and the OpenRouter multimodal routing behavior.
+

@@ -79,5 +79,59 @@
     "replace": "const changelogRawUrl = \"https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\"; const changelogUrl = `\\x1b]8;;${changelogRawUrl}\\x07` + theme.fg(\"accent\", changelogRawUrl) + `\\x1b]8;;\\x07`;",
     "verify": "changelogRawUrl",
     "occurrences": 1
+  },
+  {
+    "id": "010-extension-runtime-tool-lookup-stubs",
+    "file": "dist/core/extensions/loader.js",
+    "intent": "Expose tool lookup helpers on ExtensionAPI by adding runtime stubs that ExtensionRunner can bind later.",
+    "find": "        getAllTools: notInitialized,\n        setActiveTools: notInitialized,\n        // registerTool() is valid during extension load; refresh is only needed post-bind.\n        refreshTools: () => { },\n        getCommands: notInitialized,\n        setModel: () => Promise.reject(new Error(\"Extension runtime not initialized\")),\n        getThinkingLevel: notInitialized,\n        setThinkingLevel: notInitialized,\n        flagValues: new Map(),",
+    "replace": "        getAllTools: notInitialized,\n        getToolDefinition: notInitialized,\n        getAllRegisteredTools: notInitialized,\n        setActiveTools: notInitialized,\n        // registerTool() is valid during extension load; refresh is only needed post-bind.\n        refreshTools: () => { },\n        getCommands: notInitialized,\n        setModel: () => Promise.reject(new Error(\"Extension runtime not initialized\")),\n        getThinkingLevel: notInitialized,\n        setThinkingLevel: notInitialized,\n        flagValues: new Map(),",
+    "verify": "getToolDefinition: notInitialized",
+    "occurrences": 1
+  },
+  {
+    "id": "011-extension-api-tool-lookup-methods",
+    "file": "dist/core/extensions/loader.js",
+    "intent": "Expose getToolDefinition() and getAllRegisteredTools() through the public ExtensionAPI.",
+    "find": "        getAllTools() {\n            return runtime.getAllTools();\n        },\n        setActiveTools(toolNames) {",
+    "replace": "        getAllTools() {\n            return runtime.getAllTools();\n        },\n        getToolDefinition(name) {\n            return runtime.getToolDefinition(name);\n        },\n        getAllRegisteredTools() {\n            return runtime.getAllRegisteredTools();\n        },\n        setActiveTools(toolNames) {",
+    "verify": "getAllRegisteredTools() {",
+    "occurrences": 1
+  },
+  {
+    "id": "012-runner-binds-tool-lookup",
+    "file": "dist/core/extensions/runner.js",
+    "intent": "Bind ExtensionRunner's existing tool registry helpers into the shared extension runtime so extensions can resolve tools natively by name.",
+    "find": "        this.runtime.setModel = actions.setModel;\n        this.runtime.getThinkingLevel = actions.getThinkingLevel;\n        this.runtime.setThinkingLevel = actions.setThinkingLevel;\n        // Context actions (required)",
+    "replace": "        this.runtime.setModel = actions.setModel;\n        this.runtime.getThinkingLevel = actions.getThinkingLevel;\n        this.runtime.setThinkingLevel = actions.setThinkingLevel;\n        this.runtime.getToolDefinition = (toolName) => this.getToolDefinition(toolName);\n        this.runtime.getAllRegisteredTools = () => this.getAllRegisteredTools();\n        // Context actions (required)",
+    "verify": "this.runtime.getToolDefinition = (toolName) => this.getToolDefinition(toolName);",
+    "occurrences": 1
+  },
+  {
+    "id": "013-types-tool-lookup-handlers",
+    "file": "dist/core/extensions/types.d.ts",
+    "intent": "Add handler types for tool lookup methods on the extension runtime.",
+    "find": "export type GetAllToolsHandler = () => ToolInfo[];\nexport type GetCommandsHandler = () => SlashCommandInfo[];",
+    "replace": "export type GetAllToolsHandler = () => ToolInfo[];\nexport type GetToolDefinitionHandler = (name: string) => ToolDefinition | undefined;\nexport type GetAllRegisteredToolsHandler = () => RegisteredTool[];\nexport type GetCommandsHandler = () => SlashCommandInfo[];",
+    "verify": "export type GetToolDefinitionHandler = (name: string) => ToolDefinition | undefined;",
+    "occurrences": 1
+  },
+  {
+    "id": "014-types-extension-actions-tool-lookup",
+    "file": "dist/core/extensions/types.d.ts",
+    "intent": "Expose tool lookup helpers on ExtensionActions / ExtensionRuntime.",
+    "find": "    getActiveTools: GetActiveToolsHandler;\n    getAllTools: GetAllToolsHandler;\n    setActiveTools: SetActiveToolsHandler;",
+    "replace": "    getActiveTools: GetActiveToolsHandler;\n    getAllTools: GetAllToolsHandler;\n    getToolDefinition: GetToolDefinitionHandler;\n    getAllRegisteredTools: GetAllRegisteredToolsHandler;\n    setActiveTools: SetActiveToolsHandler;",
+    "verify": "getAllRegisteredTools: GetAllRegisteredToolsHandler;",
+    "occurrences": 1
+  },
+  {
+    "id": "015-types-extension-api-tool-lookup",
+    "file": "dist/core/extensions/types.d.ts",
+    "intent": "Expose getToolDefinition() and getAllRegisteredTools() on the public ExtensionAPI interface.",
+    "find": "    /** Get all configured tools with parameter schema and source metadata. */\n    getAllTools(): ToolInfo[];\n    /** Set the active tools by name. */\n    setActiveTools(toolNames: string[]): void;",
+    "replace": "    /** Get all configured tools with parameter schema and source metadata. */\n    getAllTools(): ToolInfo[];\n    /** Resolve a registered tool definition by exact tool name. */\n    getToolDefinition(name: string): ToolDefinition | undefined;\n    /** Get all registered tool definitions, including extension metadata. */\n    getAllRegisteredTools(): RegisteredTool[];\n    /** Set the active tools by name. */\n    setActiveTools(toolNames: string[]): void;",
+    "verify": "getToolDefinition(name: string): ToolDefinition | undefined;",
+    "occurrences": 1
   }
 ]
