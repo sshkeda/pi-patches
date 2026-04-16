@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# Test that OSC 8 patches are working correctly.
-# Run after apply.sh to verify patches produce correct output.
+# Verify the installed pi build still has the expected upstream + local patch
+# behavior after apply.sh runs.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -11,13 +11,20 @@ if [ ! -d "$PI_PKG" ]; then
 fi
 
 PI_TUI="$PI_PKG/node_modules/@mariozechner/pi-tui"
-ERRORS=0
 
-echo "→ Running OSC 8 patch tests..."
+echo "→ Running pi-patches verification tests..."
 
-node --input-type=module << SCRIPT
-import { wrapTextWithAnsi } from "$PI_TUI/dist/utils.js";
-import { Markdown } from "$PI_TUI/dist/components/markdown.js";
+PI_PKG="$PI_PKG" PI_TUI="$PI_TUI" node --input-type=module <<'SCRIPT'
+import { readFileSync } from "node:fs";
+
+const PI_PKG = process.env.PI_PKG;
+const PI_TUI = process.env.PI_TUI;
+
+const { wrapTextWithAnsi } = await import(`${PI_TUI}/dist/utils.js`);
+const { setCapabilities } = await import(`${PI_TUI}/dist/terminal-image.js`);
+const { Markdown } = await import(`${PI_TUI}/dist/components/markdown.js`);
+
+setCapabilities({ images: null, trueColor: true, hyperlinks: true });
 
 let passed = 0;
 let failed = 0;
@@ -33,412 +40,229 @@ function assert(name, condition, detail) {
   }
 }
 
-// ── Test 1: AnsiCodeTracker preserves OSC 8 across line wraps ──
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function osc8OpenRe(url) {
+  return new RegExp(`\\x1b\\]8;;${escapeRegex(url)}(?:\\x07|\\x1b\\\\)`);
+}
+
+function osc8CloseRe() {
+  return /\x1b\]8;;(?:\x07|\x1b\\)/;
+}
+
+function hasOsc8Open(text, url) {
+  return osc8OpenRe(url).test(text);
+}
+
+function hasOsc8Close(text) {
+  return osc8CloseRe().test(text);
+}
+
+function countOsc8Opens(text) {
+  return text.match(/\x1b\]8;;[^\x07\x1b]+(?:\x07|\x1b\\)/g)?.length ?? 0;
+}
+
+function basicTheme(highlightCode = (code) => code, extra = {}) {
+  return {
+    heading: (s) => s,
+    bold: (s) => s,
+    italic: (s) => s,
+    code: (s) => s,
+    codeBlock: (s) => s,
+    codeBlockBorder: (s) => s,
+    codeBlockLanguage: (s) => s,
+    quote: (s) => s,
+    quoteBorder: (s) => s,
+    hr: (s) => s,
+    listBullet: (s) => s,
+    link: (s) => s,
+    linkUrl: (s) => s,
+    underline: (s) => s,
+    strikethrough: (s) => s,
+    highlightCode,
+    tableBorder: (s) => s,
+    ...extra,
+  };
+}
+
+// ── Upstream OSC 8 baseline (001–005 are now upstream) ─────────────────────
 {
   const url = "https://example.com/very/long/path/that/will/definitely/wrap/across/multiple/lines";
-  const osc8Open = "\x1b]8;;" + url + "\x07";
-  const osc8Close = "\x1b]8;;\x07";
-  const text = osc8Open + url + osc8Close;
+  const text = `\x1b]8;;${url}\x1b\\${url}\x1b]8;;\x1b\\`;
   const lines = wrapTextWithAnsi(text, 40);
 
-  assert(
-    "OSC 8 wraps to multiple lines",
-    lines.length >= 2,
-    "Expected >=2 lines, got " + lines.length
-  );
-
-  assert(
-    "Line 0 starts with OSC 8 open",
-    lines[0].includes("\x1b]8;;" + url + "\x07"),
-    "Missing OSC 8 open on line 0"
-  );
-
-  assert(
-    "Continuation line re-opens OSC 8",
-    lines[1].includes("\x1b]8;;" + url + "\x07"),
-    "Line 1: " + JSON.stringify(lines[1])
-  );
-
-  assert(
-    "Last line closes OSC 8",
-    lines[lines.length - 1].includes("\x1b]8;;\x07"),
-    "Missing OSC 8 close on last line"
-  );
+  assert("OSC 8 wraps to multiple lines", lines.length >= 2, "Expected >=2 lines, got " + lines.length);
+  assert("Line 0 starts with OSC 8 open", hasOsc8Open(lines[0], url), "Line 0: " + JSON.stringify(lines[0]));
+  assert("Continuation line re-opens OSC 8", lines.length >= 2 && hasOsc8Open(lines[1], url), "Line 1: " + JSON.stringify(lines[1]));
+  assert("Last line closes OSC 8", hasOsc8Close(lines[lines.length - 1]), "Last line: " + JSON.stringify(lines[lines.length - 1]));
 }
 
-// ── Test 2: OSC 8 + SGR styles both preserved on continuation ──
 {
   const url = "https://example.com/styled/link/that/wraps/across/lines/for/testing";
-  const text = "\x1b]8;;" + url + "\x07\x1b[38;5;110m\x1b[4m" + url + "\x1b[24m\x1b[39m\x1b]8;;\x07";
+  const text = `\x1b]8;;${url}\x1b\\\x1b[38;5;110m\x1b[4m${url}\x1b[24m\x1b[39m\x1b]8;;\x1b\\`;
   const lines = wrapTextWithAnsi(text, 40);
 
   assert(
-    "Continuation has both OSC 8 and SGR color",
-    lines.length >= 2 &&
-    lines[1].includes("\x1b]8;;" + url + "\x07") &&
-    /\x1b\[[\d;]*m/.test(lines[1]),
-    "Line 1: " + JSON.stringify(lines[1])
+    "Continuation preserves OSC 8 + SGR styles",
+    lines.length >= 2 && hasOsc8Open(lines[1], url) && /\x1b\[[\d;]*m/.test(lines[1]),
+    "Line 1: " + JSON.stringify(lines[1]),
   );
 }
 
-// ── Test 3: OSC 8 close resets tracker state ──
 {
   const url = "https://example.com/link";
-  const text = "\x1b]8;;" + url + "\x07linktext\x1b]8;;\x07 normal text that should not have osc8 and is long enough to wrap";
+  const text = `\x1b]8;;${url}\x1b\\linktext\x1b]8;;\x1b\\ normal text that should not have osc8 and is long enough to wrap`;
   const lines = wrapTextWithAnsi(text, 40);
-
   const lastLine = lines[lines.length - 1];
-  // Count OSC 8 opens (non-empty URL) on last line — should be 0
-  const osc8Opens = (lastLine.match(/\x1b\]8;;[^\x07]+\x07/g) || []);
-  assert(
-    "Text after OSC 8 close has no hyperlink",
-    osc8Opens.length === 0,
-    "Last line has unexpected OSC 8: " + JSON.stringify(lastLine)
-  );
+
+  assert("Text after OSC 8 close has no hyperlink", countOsc8Opens(lastLine) === 0, "Last line: " + JSON.stringify(lastLine));
 }
 
-// ── Test 4: Markdown bare URL gets OSC 8 ──
 {
-  const theme = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c, tableBorder: s=>s,
-  };
-
   const url = "https://example.com/bare/url/test";
-  const md = new Markdown(url, 0, 0, theme);
-  const lines = md.render(80);
-  const output = lines.join("");
+  const output = new Markdown(url, 0, 0, basicTheme()).render(80).join("");
 
-  assert(
-    "Bare URL wrapped in OSC 8",
-    output.includes("\x1b]8;;" + url + "\x07") && output.includes("\x1b]8;;\x07"),
-    "Output: " + JSON.stringify(output)
-  );
+  assert("Bare URL renders as OSC 8 hyperlink", hasOsc8Open(output, url) && hasOsc8Close(output), "Output: " + JSON.stringify(output));
 }
 
-// ── Test 5: Markdown named link [text](url) gets OSC 8 ──
 {
-  const theme = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c, tableBorder: s=>s,
-  };
-
   const url = "https://example.com/named";
-  const md = new Markdown("[Click here](" + url + ")", 0, 0, theme);
-  const lines = md.render(80);
-  const output = lines.join("");
+  const output = new Markdown(`[Click here](${url})`, 0, 0, basicTheme()).render(80).join("");
 
-  assert(
-    "Named link wrapped in OSC 8",
-    output.includes("\x1b]8;;" + url + "\x07"),
-    "Output: " + JSON.stringify(output)
-  );
-
-  assert(
-    "Named link text visible",
-    output.includes("Click here"),
-    "Output: " + JSON.stringify(output)
-  );
-
-  assert(
-    "Named link URL in parens also inside OSC 8",
-    // The OSC 8 close should come AFTER the (url) part
-    output.indexOf("(" + url + ")") < output.lastIndexOf("\x1b]8;;\x07"),
-    "OSC 8 closes before URL parens"
-  );
+  assert("Named link renders as OSC 8 hyperlink", hasOsc8Open(output, url) && hasOsc8Close(output), "Output: " + JSON.stringify(output));
+  assert("Named link text stays visible", output.includes("Click here"), "Output: " + JSON.stringify(output));
 }
 
-// ── Test 6: Multiple links don't leak OSC 8 between them ──
 {
-  const theme = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c, tableBorder: s=>s,
-  };
+  const output = new Markdown("[A](https://a.com) then [B](https://b.com)", 0, 0, basicTheme()).render(80).join("");
 
-  const md = new Markdown("[A](https://a.com) then [B](https://b.com)", 0, 0, theme);
-  const lines = md.render(80);
-  const output = lines.join("");
-
-  assert(
-    "First link has correct OSC 8 URL",
-    output.includes("\x1b]8;;https://a.com\x07"),
-    "Output: " + JSON.stringify(output)
-  );
-
-  assert(
-    "Second link has correct OSC 8 URL",
-    output.includes("\x1b]8;;https://b.com\x07"),
-    "Output: " + JSON.stringify(output)
-  );
+  assert("First markdown link has correct URL", hasOsc8Open(output, "https://a.com"), "Output: " + JSON.stringify(output));
+  assert("Second markdown link has correct URL", hasOsc8Open(output, "https://b.com"), "Output: " + JSON.stringify(output));
 }
 
-// ── Test 7: URL in backtick code span gets OSC 8 ──
+// ── Local OSC 8 coverage patches (006–009) ─────────────────────────────────
 {
-  const theme = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c, tableBorder: s=>s,
-  };
+  const source = readFileSync(`${PI_PKG}/dist/modes/interactive/interactive-mode.js`, "utf8");
+  assert("Update banner changelog URL patch is present", source.includes("const changelogRawUrl ="), "interactive-mode.js missing changelogRawUrl helper");
+}
 
+{
   const url = "https://agentvibe.pages.dev/join?c=j57bpc9ggjknj4yxc1mz3mr71184b81a&s=6baf0e16358be3b89b9e8c2160d879d61198695d6fac8f1ae317a4d70059b350";
   const bt = "\x60";
-  const md = new Markdown(bt + url + bt, 0, 0, theme);
-  const lines = md.render(80);
-  const output = lines.join("");
+  const output = new Markdown(bt + url + bt, 0, 0, basicTheme()).render(80).join("");
 
-  assert(
-    "URL in backtick code span gets OSC 8",
-    output.includes("\x1b]8;;" + url + "\x07") && output.includes("\x1b]8;;\x07"),
-    "Output: " + JSON.stringify(output)
-  );
+  assert("URL in backtick code span gets OSC 8", hasOsc8Open(output, url) && hasOsc8Close(output), "Output: " + JSON.stringify(output));
 }
 
-// ── Test 8: Non-URL code span does NOT get OSC 8 ──
 {
-  const theme = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c, tableBorder: s=>s,
-  };
-
-  const bt = "\x60";
-  const md = new Markdown(bt + "const x = 5" + bt, 0, 0, theme);
-  const output = md.render(80).join("");
-
-  assert(
-    "Non-URL code span has no OSC 8",
-    !output.includes("\x1b]8;;"),
-    "Output: " + JSON.stringify(output)
-  );
+  const output = new Markdown("`const x = 5`", 0, 0, basicTheme()).render(80).join("");
+  assert("Non-URL code span has no OSC 8", !output.includes("\x1b]8;;"), "Output: " + JSON.stringify(output));
 }
 
-// ── Test 9: URL in code span wraps correctly with OSC 8 ──
 {
   const url = "https://example.com/very/long/url/that/will/definitely/wrap/across/multiple/terminal/lines/when/rendered";
-  const bt = "\x60";
-  const md_input = bt + url + bt;
+  const outputLines = new Markdown("`" + url + "`", 0, 0, basicTheme()).render(40);
 
-  const theme = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c, tableBorder: s=>s,
-  };
-
-  const md = new Markdown(md_input, 0, 0, theme);
-  const lines = md.render(40);
-
-  assert(
-    "URL code span wraps to multiple lines",
-    lines.length >= 2,
-    "Expected >=2 lines, got " + lines.length
-  );
-
-  if (lines.length >= 2) {
-    assert(
-      "Wrapped URL code span continuation has OSC 8",
-      lines[1].includes("\x1b]8;;" + url + "\x07"),
-      "Line 1: " + JSON.stringify(lines[1])
-    );
+  assert("URL code span wraps to multiple lines", outputLines.length >= 2, "Expected >=2 lines, got " + outputLines.length);
+  if (outputLines.length >= 2) {
+    assert("Wrapped URL code span continuation has OSC 8", hasOsc8Open(outputLines[1], url), "Line 1: " + JSON.stringify(outputLines[1]));
   }
 }
 
-// ── Test 10: URL in code block (highlighted) gets OSC 8 ──
 {
-  const theme2 = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c.split("\n"), tableBorder: s=>s,
-  };
-
   const url = "https://example.com/very/long/path/in/code/block";
-  const md = new Markdown("" + String.fromCharCode(96,96,96) + "\n" + url + "\n" + String.fromCharCode(96,96,96), 0, 0, theme2);
-  const lines = md.render(120);
-  const output = lines.join("");
+  const block = `${"`".repeat(3)}\n${url}\n${"`".repeat(3)}`;
+  const output = new Markdown(block, 0, 0, basicTheme((code) => code.split("\n"))).render(120).join("");
 
-  assert(
-    "URL in code block (highlighted) gets OSC 8",
-    output.includes("\x1b]8;;" + url + "\x07"),
-    "Output: " + JSON.stringify(output)
-  );
+  assert("URL in highlighted code block gets OSC 8", hasOsc8Open(output, url), "Output: " + JSON.stringify(output));
 }
 
-// ── Test 11: URL in code block (plain) gets OSC 8 ──
 {
-  const theme2 = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: null, tableBorder: s=>s,
-  };
-
   const url = "https://example.com/plain/code/block";
-  const md = new Markdown("" + String.fromCharCode(96,96,96) + "\n" + url + "\n" + String.fromCharCode(96,96,96), 0, 0, theme2);
-  const lines = md.render(120);
-  const output = lines.join("");
+  const block = `${"`".repeat(3)}\n${url}\n${"`".repeat(3)}`;
+  const output = new Markdown(block, 0, 0, basicTheme(null)).render(120).join("");
 
+  assert("URL in plain code block gets OSC 8", hasOsc8Open(output, url), "Output: " + JSON.stringify(output));
+}
+
+{
+  const block = `${"`".repeat(3)}\nconst x = 5;\n${"`".repeat(3)}`;
+  const output = new Markdown(block, 0, 0, basicTheme((code) => code.split("\n"))).render(80).join("");
+
+  assert("Non-URL code block has no OSC 8", !output.includes("\x1b]8;;"), "Output: " + JSON.stringify(output));
+}
+
+// ── Extension runtime tool lookup patches (010–015) ────────────────────────
+{
+  const loaderSource = readFileSync(`${PI_PKG}/dist/core/extensions/loader.js`, "utf8");
+  assert("Extension runtime exposes getToolDefinition stub", loaderSource.includes("getToolDefinition: notInitialized"), "loader.js missing runtime stub");
+  assert("Extension API exposes getAllRegisteredTools", loaderSource.includes("getAllRegisteredTools() {"), "loader.js missing API method");
+}
+
+{
+  const runnerSource = readFileSync(`${PI_PKG}/dist/core/extensions/runner.js`, "utf8");
   assert(
-    "URL in code block (plain) gets OSC 8",
-    output.includes("\x1b]8;;" + url + "\x07"),
-    "Output: " + JSON.stringify(output)
+    "Extension runner binds tool lookup helpers",
+    runnerSource.includes("this.runtime.getToolDefinition = (toolName) => this.getToolDefinition(toolName);") &&
+      runnerSource.includes("this.runtime.getAllRegisteredTools = () => this.getAllRegisteredTools();"),
+    "runner.js missing runtime bindings",
   );
 }
 
-// ── Test 12: Non-URL code block line has no OSC 8 ──
 {
-  const theme2 = {
-    heading: s=>s, bold: s=>s, italic: s=>s, code: s=>s,
-    codeBlock: s=>s, codeBlockBorder: s=>s, codeBlockLanguage: s=>s,
-    quote: s=>s, quoteBorder: s=>s, hr: s=>s, listBullet: s=>s,
-    link: s=>s, linkUrl: s=>s, underline: s=>s, strikethrough: s=>s,
-    highlightCode: (c,l)=>c.split("\n"), tableBorder: s=>s,
-  };
-
-  const md = new Markdown("" + String.fromCharCode(96,96,96) + "\nconst x = 5;\n" + String.fromCharCode(96,96,96), 0, 0, theme2);
-  const output = md.render(80).join("");
-
-  assert(
-    "Non-URL code block has no OSC 8",
-    !output.includes("\x1b]8;;"),
-    "Output: " + JSON.stringify(output)
-  );
+  const typesSource = readFileSync(`${PI_PKG}/dist/core/extensions/types.d.ts`, "utf8");
+  assert("Extension types declare getToolDefinition handler", typesSource.includes("export type GetToolDefinitionHandler = (name: string) => ToolDefinition | undefined;"), "types.d.ts missing handler type");
+  assert("Extension API declares getToolDefinition()", typesSource.includes("getToolDefinition(name: string): ToolDefinition | undefined;"), "types.d.ts missing API method");
+  assert("Extension API declares getAllRegisteredTools()", typesSource.includes("getAllRegisteredTools(): RegisteredTool[];"), "types.d.ts missing registered-tools API method");
 }
 
-// ── Test 13: OpenRouter audio is routed as input_audio ──
-{
-  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
-  const model = {
+// ── OpenRouter multimodal routing patches from pi-read (016–018) ───────────
+const { convertMessages } = await import(`${PI_PKG}/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js`);
+
+function openRouterModel() {
+  return {
     provider: "openrouter",
     api: "openai-completions",
     id: "google/gemini-3.1-pro-preview",
     baseUrl: "https://openrouter.ai/api/v1",
     input: ["text", "image"],
   };
-  const compat = {
-    requiresAssistantAfterToolResult: false,
-    requiresToolResultName: false,
-    requiresThinkingAsText: false,
-  };
-  const messages = convertMessages(model, {
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "transcribe this" },
-          { type: "image", mimeType: "audio/mp4", data: "AAAA" },
-        ],
-      },
-    ],
+}
+
+const compat = {
+  requiresAssistantAfterToolResult: false,
+  requiresToolResultName: false,
+  requiresThinkingAsText: false,
+};
+
+{
+  const messages = convertMessages(openRouterModel(), {
+    messages: [{ role: "user", content: [{ type: "text", text: "transcribe this" }, { type: "image", mimeType: "audio/mp4", data: "AAAA" }] }],
   }, compat);
   const media = messages[0].content[1];
-  assert(
-    "OpenRouter audio uses input_audio",
-    media?.type === "input_audio" && media?.input_audio?.format === "m4a" && media?.input_audio?.data === "AAAA",
-    "Media: " + JSON.stringify(media)
-  );
+  assert("OpenRouter audio uses input_audio", media?.type === "input_audio" && media?.input_audio?.format === "m4a" && media?.input_audio?.data === "AAAA", "Media: " + JSON.stringify(media));
 }
 
-// ── Test 14: OpenRouter video is routed as video_url ──
 {
-  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
-  const model = {
-    provider: "openrouter",
-    api: "openai-completions",
-    id: "google/gemini-3.1-pro-preview",
-    baseUrl: "https://openrouter.ai/api/v1",
-    input: ["text", "image"],
-  };
-  const compat = {
-    requiresAssistantAfterToolResult: false,
-    requiresToolResultName: false,
-    requiresThinkingAsText: false,
-  };
-  const messages = convertMessages(model, {
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "analyze this" },
-          { type: "image", mimeType: "video/mp4", data: "BBBB" },
-        ],
-      },
-    ],
+  const messages = convertMessages(openRouterModel(), {
+    messages: [{ role: "user", content: [{ type: "text", text: "analyze this" }, { type: "image", mimeType: "video/mp4", data: "BBBB" }] }],
   }, compat);
   const media = messages[0].content[1];
-  assert(
-    "OpenRouter video uses video_url",
-    media?.type === "video_url" && media?.video_url?.url === "data:video/mp4;base64,BBBB",
-    "Media: " + JSON.stringify(media)
-  );
+  assert("OpenRouter video uses video_url", media?.type === "video_url" && media?.video_url?.url === "data:video/mp4;base64,BBBB", "Media: " + JSON.stringify(media));
 }
 
-// ── Test 15: OpenRouter PDF is routed as file ──
 {
-  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
-  const model = {
-    provider: "openrouter",
-    api: "openai-completions",
-    id: "google/gemini-3.1-pro-preview",
-    baseUrl: "https://openrouter.ai/api/v1",
-    input: ["text", "image"],
-  };
-  const compat = {
-    requiresAssistantAfterToolResult: false,
-    requiresToolResultName: false,
-    requiresThinkingAsText: false,
-  };
-  const messages = convertMessages(model, {
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "summarize this" },
-          { type: "image", mimeType: "application/pdf", data: "CCCC" },
-        ],
-      },
-    ],
+  const messages = convertMessages(openRouterModel(), {
+    messages: [{ role: "user", content: [{ type: "text", text: "summarize this" }, { type: "image", mimeType: "application/pdf", data: "CCCC" }] }],
   }, compat);
   const media = messages[0].content[1];
-  assert(
-    "OpenRouter PDF uses file",
-    media?.type === "file" && media?.file?.filename === "attachment.pdf" && media?.file?.file_data === "data:application/pdf;base64,CCCC",
-    "Media: " + JSON.stringify(media)
-  );
+  assert("OpenRouter PDF uses file", media?.type === "file" && media?.file?.filename === "attachment.pdf" && media?.file?.file_data === "data:application/pdf;base64,CCCC", "Media: " + JSON.stringify(media));
 }
 
-// ── Test 16: Tool-result audio becomes synthetic user input_audio on OpenRouter ──
 {
-  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
-  const model = {
-    provider: "openrouter",
-    api: "openai-completions",
-    id: "google/gemini-3.1-pro-preview",
-    baseUrl: "https://openrouter.ai/api/v1",
-    input: ["text", "image"],
-  };
-  const compat = {
-    requiresAssistantAfterToolResult: false,
-    requiresToolResultName: false,
-    requiresThinkingAsText: false,
-  };
-  const messages = convertMessages(model, {
+  const messages = convertMessages(openRouterModel(), {
     messages: [
       {
         role: "assistant",
@@ -468,13 +292,11 @@ function assert(name, condition, detail) {
   assert(
     "OpenRouter tool-result audio uses input_audio",
     syntheticUser?.role === "user" && media?.type === "input_audio" && media?.input_audio?.format === "m4a",
-    "Synthetic user: " + JSON.stringify(syntheticUser)
+    "Synthetic user: " + JSON.stringify(syntheticUser),
   );
 }
 
-// ── Test 17: Non-OpenRouter providers keep legacy image_url fallback ──
 {
-  const { convertMessages } = await import("$PI_PKG/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js");
   const model = {
     provider: "openai",
     api: "openai-completions",
@@ -482,32 +304,14 @@ function assert(name, condition, detail) {
     baseUrl: "https://api.openai.com/v1",
     input: ["text", "image"],
   };
-  const compat = {
-    requiresAssistantAfterToolResult: false,
-    requiresToolResultName: false,
-    requiresThinkingAsText: false,
-  };
   const messages = convertMessages(model, {
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "legacy path" },
-          { type: "image", mimeType: "audio/mp4", data: "EEEE" },
-        ],
-      },
-    ],
+    messages: [{ role: "user", content: [{ type: "text", text: "legacy path" }, { type: "image", mimeType: "audio/mp4", data: "EEEE" }] }],
   }, compat);
   const media = messages[0].content[1];
-  assert(
-    "Non-OpenRouter audio still falls back to image_url",
-    media?.type === "image_url" && media?.image_url?.url === "data:audio/mp4;base64,EEEE",
-    "Media: " + JSON.stringify(media)
-  );
+  assert("Non-OpenRouter audio still falls back to image_url", media?.type === "image_url" && media?.image_url?.url === "data:audio/mp4;base64,EEEE", "Media: " + JSON.stringify(media));
 }
 
-// ── Summary ──
 console.log("");
-console.log("→ " + passed + " passed, " + failed + " failed");
+console.log(`→ ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 SCRIPT
