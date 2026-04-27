@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# Launch a dedicated Pi maintenance session for reviewing pi-patches against
+# upstream Pi changelog changes. This intentionally does NOT install/update Pi.
+#
+# Usage:
+#   pi-update [extra pi args...]
+#
+# Environment overrides:
+#   PI_UPDATE_MODEL=openai-codex/gpt-5.5
+#   PI_UPDATE_THINKING=medium
+#   PI_UPDATE_CHANGELOG_URL=https://...
+# ---------------------------------------------------------------------------
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PI_BIN="$(command -v pi || true)"
+CONFIG_FILE="${PI_UPDATE_CONFIG:-$HOME/.pi/agent/pi-update.env}"
+
+if [ -z "$PI_BIN" ]; then
+  echo "ERROR: pi not found on PATH. Install pi before running pi-update." >&2
+  exit 1
+fi
+
+# Optional global profile. Example ~/.pi/agent/pi-update.env:
+#   PI_UPDATE_MODEL=openai-codex/gpt-5.5
+#   PI_UPDATE_THINKING=medium
+# Explicit environment variables from the shell win over this file.
+_PRE_MODEL_SET="${PI_UPDATE_MODEL+x}"
+_PRE_MODEL="${PI_UPDATE_MODEL-}"
+_PRE_THINKING_SET="${PI_UPDATE_THINKING+x}"
+_PRE_THINKING="${PI_UPDATE_THINKING-}"
+_PRE_CHANGELOG_SET="${PI_UPDATE_CHANGELOG_URL+x}"
+_PRE_CHANGELOG="${PI_UPDATE_CHANGELOG_URL-}"
+if [ -f "$CONFIG_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+fi
+if [ -n "$_PRE_MODEL_SET" ]; then PI_UPDATE_MODEL="$_PRE_MODEL"; fi
+if [ -n "$_PRE_THINKING_SET" ]; then PI_UPDATE_THINKING="$_PRE_THINKING"; fi
+if [ -n "$_PRE_CHANGELOG_SET" ]; then PI_UPDATE_CHANGELOG_URL="$_PRE_CHANGELOG"; fi
+
+MODEL="${PI_UPDATE_MODEL:-openai-codex/gpt-5.5}"
+THINKING="${PI_UPDATE_THINKING:-medium}"
+CHANGELOG_URL="${PI_UPDATE_CHANGELOG_URL:-https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md}"
+
+PROMPT="Read UPDATE_INSTRUCTIONS.md and use it to review/update this pi-patches repo. If verification shows the update path is safe, run the real Pi upgrade flow; stop only for a real conflict, failed check, unavailable referenced source, destructive ambiguity, or another serious verified uncertainty."
+
+echo "→ Launching pi-update review session in $SCRIPT_DIR"
+echo "→ Model: $MODEL, thinking: $THINKING"
+echo "→ The editor will be prefilled; press Enter/Return when you want to send it."
+cd "$SCRIPT_DIR"
+export PI_UPDATE_PREFILL_PROMPT="$PROMPT"
+exec "$PI_BIN" --model "$MODEL" --thinking "$THINKING" --extension "$SCRIPT_DIR/pi-update-prefill-extension.js" "$@"
