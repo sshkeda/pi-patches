@@ -218,6 +218,40 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
   assert("Extension API declares getAllRegisteredTools()", typesSource.includes("getAllRegisteredTools(): RegisteredTool[];"), "types.d.ts missing registered-tools API method");
 }
 
+{
+  const coreTypesSource = readFileSync(`${PI_PKG}/node_modules/@mariozechner/pi-agent-core/dist/types.d.ts`, "utf8");
+  const beforeToolCallResult = coreTypesSource.match(/export interface BeforeToolCallResult \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert(
+    "beforeToolCall result supports concrete content/details/isError",
+    beforeToolCallResult.includes("content?: (TextContent | ImageContent)[];") &&
+      beforeToolCallResult.includes("details?: unknown;") &&
+      beforeToolCallResult.includes("isError?: boolean;"),
+    "pi-agent-core/types.d.ts BeforeToolCallResult missing short-circuit result fields; got: " + beforeToolCallResult,
+  );
+}
+
+{
+  const coreLoopSource = readFileSync(`${PI_PKG}/node_modules/@mariozechner/pi-agent-core/dist/agent-loop.js`, "utf8");
+  assert(
+    "agent loop honors beforeToolCall concrete result payloads",
+    coreLoopSource.includes("beforeResult.content || beforeResult.details !== undefined") &&
+      coreLoopSource.includes("beforeResult.isError ?? !(beforeResult.content || beforeResult.details !== undefined)"),
+    "pi-agent-core/agent-loop.js missing beforeToolCall short-circuit handling",
+  );
+}
+
+{
+  const extensionTypesSource = readFileSync(`${PI_PKG}/dist/core/extensions/types.d.ts`, "utf8");
+  const toolCallEventResult = extensionTypesSource.match(/export interface ToolCallEventResult \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert(
+    "extension tool_call result supports concrete content/details/isError",
+    toolCallEventResult.includes("content?: (TextContent | ImageContent)[];") &&
+      toolCallEventResult.includes("details?: unknown;") &&
+      toolCallEventResult.includes("isError?: boolean;"),
+    "extensions/types.d.ts ToolCallEventResult missing short-circuit result fields; got: " + toolCallEventResult,
+  );
+}
+
 // ── OpenRouter multimodal routing patches from pi-read (016–018) ───────────
 const { convertMessages } = await import(`${PI_PKG}/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js`);
 
