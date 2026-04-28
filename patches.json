@@ -11,8 +11,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-tui",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/tui"
+        "package": "@mariozechner/pi-tui"
       },
       {
         "type": "consumer-repo",
@@ -37,8 +36,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-tui",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/tui"
+        "package": "@mariozechner/pi-tui"
       },
       {
         "type": "consumer-repo",
@@ -63,8 +61,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-tui",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/tui"
+        "package": "@mariozechner/pi-tui"
       },
       {
         "type": "consumer-repo",
@@ -89,8 +86,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       }
     ]
   },
@@ -106,8 +102,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -134,8 +129,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -162,8 +156,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -190,8 +183,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -218,8 +210,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -246,8 +237,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -274,14 +264,12 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-agent-core",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/agent-core"
+        "package": "@mariozechner/pi-agent-core"
       },
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -307,14 +295,12 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-agent-core",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/agent-core"
+        "package": "@mariozechner/pi-agent-core"
       },
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -340,14 +326,12 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-agent-core",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/agent-core"
+        "package": "@mariozechner/pi-agent-core"
       },
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/coding-agent"
+        "package": "@mariozechner/pi-coding-agent"
       },
       {
         "type": "consumer-repo",
@@ -373,8 +357,7 @@
       {
         "type": "upstream-package",
         "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-agent-core",
-        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/agent-core"
+        "package": "@mariozechner/pi-agent-core"
       },
       {
         "type": "consumer-repo",
