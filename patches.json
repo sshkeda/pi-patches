@@ -360,5 +360,31 @@
         "reason": "tool_call interception can return cached/proxied tool results instead of rerunning real tools."
       }
     ]
+  },
+  {
+    "id": "019-tool-call-resolve-result",
+    "file": "node_modules/@mariozechner/pi-agent-core/dist/agent-loop.js",
+    "intent": "Allow tool call blocks to carry a resolveResult async function that short-circuits tool execution entirely. Provider bridges (e.g. pi-claude-code) attach this function so the agent loop never tries to execute or intercept the tool — it just resolves the pre-computed result directly.",
+    "find": "async function prepareToolCall(currentContext, assistantMessage, toolCall, config, signal) {\n    const tool = currentContext.tools?.find((t) => t.name === toolCall.name);",
+    "replace": "async function prepareToolCall(currentContext, assistantMessage, toolCall, config, signal) {\n    if (typeof toolCall.resolveResult === \"function\") {\n        try {\n            const resolved = await toolCall.resolveResult(signal);\n            return {\n                kind: \"immediate\",\n                result: { content: resolved.content || [{ type: \"text\", text: \"resolved\" }], details: resolved.details },\n                isError: resolved.isError ?? false,\n            };\n        }\n        catch (error) {\n            return {\n                kind: \"immediate\",\n                result: createErrorToolResult(error instanceof Error ? error.message : String(error)),\n                isError: true,\n            };\n        }\n    }\n    const tool = currentContext.tools?.find((t) => t.name === toolCall.name);",
+    "verify": "typeof toolCall.resolveResult === \"function\"",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "badlogic/pi-mono",
+        "package": "@mariozechner/pi-agent-core",
+        "localPath": "/Users/sshkeda/Documents/GitHub/pi2/packages/agent-core"
+      },
+      {
+        "type": "consumer-repo",
+        "repo": "pi-claude-code",
+        "localPath": "/Users/sshkeda/Documents/GitHub/pi-claude-code",
+        "paths": [
+          "index.ts"
+        ],
+        "reason": "Bridge attaches resolveResult to projected tool calls so pi never executes them — results come from Claude Code's session."
+      }
+    ]
   }
 ]
