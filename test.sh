@@ -241,6 +241,15 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
 }
 
 {
+  const bashToolSource = readFileSync(`${PI_PKG}/dist/core/tools/bash.js`, "utf8");
+  assert(
+    "bash prompt snippet warns timeout is seconds, not milliseconds",
+    bashToolSource.includes("timeout=120 for 2 minutes, never milliseconds"),
+    "dist/core/tools/bash.js missing explicit timeout unit prompt snippet",
+  );
+}
+
+{
   const extensionTypesSource = readFileSync(`${PI_PKG}/dist/core/extensions/types.d.ts`, "utf8");
   const toolCallEventResult = extensionTypesSource.match(/export interface ToolCallEventResult \{[\s\S]*?\n\}/)?.[0] ?? "";
   assert(

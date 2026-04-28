@@ -369,5 +369,25 @@
         "reason": "Bridge attaches resolveResult to projected tool calls so pi never executes them — results come from Claude Code's session."
       }
     ]
+  },
+  {
+    "id": "020-bash-timeout-seconds-prompt",
+    "file": "dist/core/tools/bash.js",
+    "intent": "Make the bash tool's system-prompt snippet explicit that timeout is measured in seconds, preventing models from passing millisecond values like 120000 for a two-minute cap.",
+    "find": "        promptSnippet: \"Execute bash commands (ls, grep, find, etc.)\",",
+    "replace": "        promptSnippet: \"Execute bash commands (ls, grep, find, etc.); timeout is in seconds (e.g. timeout=120 for 2 minutes, never milliseconds)\",",
+    "verify": "timeout=120 for 2 minutes, never milliseconds",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "badlogic/pi-mono",
+        "package": "@mariozechner/pi-coding-agent"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Observed gpt-5.5 repeatedly passing bash timeout=120000 after reading test code with timeoutMs values; Pi correctly interprets bash timeout as seconds, so the model-facing snippet needs the unit."
+      }
+    ]
   }
 ]
