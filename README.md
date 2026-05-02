@@ -2,11 +2,12 @@
 
 Small install-time patches for [pi](https://github.com/badlogic/pi-mono).
 
-Today this repo patches five things directly:
+Today this repo patches six things directly:
 - **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (update banner, inline code spans, and URL-only code-block lines)
 - **extension-runtime tool lookup hooks** (`getToolDefinition`, `getAllRegisteredTools`) for native custom-tool integration
 - **tool-call short-circuit results** so extension `tool_call` handlers can return cached tool output directly instead of rerunning the real tool
 - **bash timeout prompt clarity** so models see that the bash tool's `timeout` argument is in seconds, not milliseconds
+- **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
 - **conflict-pruned patch manifests** that stay compatible with upstream `0.67.6+`, where base markdown OSC 8 links and wrap tracking are now built in
 
 It also acts as a patch orchestrator for sibling repos. Right now it loads the OpenRouter multimodal transport patch from:
@@ -72,14 +73,14 @@ bash upgrade.sh
 
 That command asks for confirmation, then runs:
 
-1. `npm install -g @mariozechner/pi-coding-agent`
+1. `npm install -g @mariozechner/pi-coding-agent@latest`
 2. `bash apply.sh`
 3. `bash test.sh`
 
 Manual equivalent:
 
 ```bash
-npm install -g @mariozechner/pi-coding-agent
+npm install -g @mariozechner/pi-coding-agent@latest
 bash apply.sh
 bash test.sh
 ```
@@ -96,6 +97,7 @@ bash test.sh
 | 010–015 | `loader.js`, `runner.js`, `types.d.ts` | Expose extension tool lookup/runtime helpers so extensions can resolve registered tools natively by name |
 | 016–018 | `pi-agent-core/dist/types.d.ts`, `pi-agent-core/dist/agent-loop.js`, `extensions/types.d.ts` | Let extension `tool_call` hooks return a real cached tool result payload when blocking execution |
 | 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds |
+| 021–022 | `tools/bash.js` | Wrap bare URLs in rendered bash tool output with OSC 8 hyperlinks |
 | external (`pi-read`) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
 
 > Upstream `0.67.6` absorbed former patches **001–005** by adding native markdown OSC 8 link rendering and hyperlink wrap tracking in `@mariozechner/pi-tui`.

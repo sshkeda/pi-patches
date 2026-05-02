@@ -23,8 +23,11 @@ const PI_TUI = process.env.PI_TUI;
 const { wrapTextWithAnsi } = await import(`${PI_TUI}/dist/utils.js`);
 const { setCapabilities } = await import(`${PI_TUI}/dist/terminal-image.js`);
 const { Markdown } = await import(`${PI_TUI}/dist/components/markdown.js`);
+const { initTheme } = await import(`${PI_PKG}/dist/modes/interactive/theme/theme.js`);
+const { createBashToolDefinition } = await import(`${PI_PKG}/dist/core/tools/bash.js`);
 
 setCapabilities({ images: null, trueColor: true, hyperlinks: true });
+initTheme("dark");
 
 let passed = 0;
 let failed = 0;
@@ -246,6 +249,30 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
     "bash prompt snippet warns timeout is seconds, not milliseconds",
     bashToolSource.includes("timeout=120 for 2 minutes, never milliseconds"),
     "dist/core/tools/bash.js missing explicit timeout unit prompt snippet",
+  );
+  assert(
+    "bash output URL linkifier patch is present",
+    bashToolSource.includes("function linkifyBareUrls(text)") && bashToolSource.includes('theme.fg("toolOutput", linkifyBareUrls(line))'),
+    "dist/core/tools/bash.js missing bash output URL linkifier",
+  );
+}
+
+{
+  const url = "https://vercel.com/docs/accounts/team-members-and-roles/access-roles/team-level-roles?resource=Remote+Cache+Artifact";
+  const bashDef = createBashToolDefinition(PI_PKG);
+  const component = bashDef.renderResult(
+    { content: [{ type: "text", text: `WARNING see ${url}` }] },
+    { expanded: false, isPartial: false },
+    basicTheme(),
+    { state: {}, lastComponent: undefined, invalidate: () => {}, showImages: false, isError: false },
+  );
+  const lines = component.render(56);
+  const output = lines.join("\n");
+  assert("Bash result URL renders as OSC 8 hyperlink", hasOsc8Open(output, url), "Output: " + JSON.stringify(output));
+  assert(
+    "Wrapped bash result URL continuation has OSC 8",
+    lines.length >= 3 && lines.slice(2).some((line) => hasOsc8Open(line, url)),
+    "Lines: " + JSON.stringify(lines),
   );
 }
 

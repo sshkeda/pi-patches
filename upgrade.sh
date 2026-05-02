@@ -14,11 +14,16 @@ if [ -z "$PI_BIN" ]; then
   exit 1
 fi
 
-PI_PREFIX="$(cd "$(dirname "$PI_BIN")/.." && pwd)"
-PI_NPM="$PI_PREFIX/bin/npm"
+PI_NPM="$(command -v npm || true)"
 
-if [ ! -x "$PI_NPM" ]; then
-  echo "ERROR: npm not found next to active pi binary at $PI_NPM" >&2
+if [ -z "$PI_NPM" ] || [ ! -x "$PI_NPM" ]; then
+  echo "ERROR: npm not found on PATH." >&2
+  exit 1
+fi
+
+PI_PREFIX="$("$PI_NPM" prefix -g)"
+if [ -z "$PI_PREFIX" ] || [ ! -d "$PI_PREFIX" ]; then
+  echo "ERROR: could not determine npm global prefix from $PI_NPM." >&2
   exit 1
 fi
 
@@ -29,7 +34,7 @@ case "$answer" in
 esac
 
 echo "→ Updating pi via $PI_NPM..."
-"$PI_NPM" install -g --prefix "$PI_PREFIX" @mariozechner/pi-coding-agent
+"$PI_NPM" install -g --prefix "$PI_PREFIX" @mariozechner/pi-coding-agent@latest
 
 echo "→ Re-applying local pi patches..."
 bash "$SCRIPT_DIR/apply.sh"
