@@ -2,16 +2,15 @@
 
 Small install-time patches for [pi](https://github.com/badlogic/pi-mono).
 
-Today this repo patches six things directly:
+Today this repo owns local patches for:
 - **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (update banner, inline code spans, and URL-only code-block lines)
-- **extension-runtime tool lookup hooks** (`getToolDefinition`, `getAllRegisteredTools`) for native custom-tool integration
-- **tool-call short-circuit results** so extension `tool_call` handlers can return cached tool output directly instead of rerunning the real tool
 - **bash timeout prompt clarity** so models see that the bash tool's `timeout` argument is in seconds, not milliseconds
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
 - **conflict-pruned patch manifests** that stay compatible with upstream `0.67.6+`, where base markdown OSC 8 links and wrap tracking are now built in
 
-It also acts as a patch orchestrator for sibling repos. Right now it loads the OpenRouter multimodal transport patch from:
+It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
+- **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve pre-computed tool results directly
 
 ## Usage
 
@@ -94,11 +93,10 @@ bash test.sh
 | 006 | `interactive-mode.js` | Make the update banner changelog URL clickable |
 | 007 | `markdown.js` | Wrap URLs in inline code spans (`` `https://...` ``) |
 | 008–009 | `markdown.js` | Wrap URL-only lines in code blocks (highlighted + plain) |
-| 010–015 | `loader.js`, `runner.js`, `types.d.ts` | Expose extension tool lookup/runtime helpers so extensions can resolve registered tools natively by name |
-| 016–018 | `pi-agent-core/dist/types.d.ts`, `pi-agent-core/dist/agent-loop.js`, `extensions/types.d.ts` | Let extension `tool_call` hooks return a real cached tool result payload when blocking execution |
 | 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds |
 | 021–022 | `tools/bash.js` | Wrap bare URLs in rendered bash tool output with OSC 8 hyperlinks |
-| external (`pi-read`) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
+| external (`pi-read` 016–018) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
+| external (`pi-claude-code` 010–019) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge pre-computed tool results |
 
 > Upstream `0.67.6` absorbed former patches **001–005** by adding native markdown OSC 8 link rendering and hyperlink wrap tracking in `@mariozechner/pi-tui`.
 
@@ -116,7 +114,7 @@ bash test.sh
 
 `upgrade.sh` is the explicit mutating updater used by the review session when the path is safe. It confirms first, then reinstalls Pi globally, runs `apply.sh`, and runs `test.sh`. In an agent-run session after safe verification, the confirmation can be supplied explicitly (for example, `printf 'y\n' | bash upgrade.sh`).
 
-`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (for example `../pi-read/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime patches, and the OpenRouter multimodal routing behavior.
+`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (currently `../pi-read/patches/pi-patches.json` and `../pi-claude-code/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime patches, extension-runtime/tool-call behavior, and OpenRouter multimodal routing behavior.
 
 Patch entries may include a `references` array. Keep it updated when adding, changing, or deleting a patch:
 
