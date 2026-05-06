@@ -6,6 +6,7 @@ Today this repo owns local patches for:
 - **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (update banner, inline code spans, and URL-only code-block lines)
 - **bash timeout prompt clarity** so models see that the bash tool's `timeout` argument is in seconds, not milliseconds
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
+- **`/reload` current-session refresh** so reload reopens the session file it was invoked from before rebuilding chat
 - **conflict-pruned patch manifests** that stay compatible with upstream `0.67.6+`, where base markdown OSC 8 links and wrap tracking are now built in
 
 It also acts as a patch orchestrator for sibling repos. Right now it loads:
@@ -95,6 +96,7 @@ bash test.sh
 | 008–009 | `markdown.js` | Wrap URL-only lines in code blocks (highlighted + plain) |
 | 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds |
 | 021–022 | `tools/bash.js` | Wrap bare URLs in rendered bash tool output with OSC 8 hyperlinks |
+| 030 | `agent-session.js` | Reopen the current session file during `/reload` before rebuilding chat |
 | external (`pi-read` 016–018) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
 | external (`pi-claude-code` 010–019) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge pre-computed tool results |
 
@@ -114,7 +116,7 @@ bash test.sh
 
 `upgrade.sh` is the explicit mutating updater used by the review session when the path is safe. It confirms first, then reinstalls Pi globally, runs `apply.sh`, and runs `test.sh`. In an agent-run session after safe verification, the confirmation can be supplied explicitly (for example, `printf 'y\n' | bash upgrade.sh`).
 
-`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (currently `../pi-read/patches/pi-patches.json` and `../pi-claude-code/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime patches, extension-runtime/tool-call behavior, and OpenRouter multimodal routing behavior.
+`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (currently `../pi-read/patches/pi-patches.json` and `../pi-claude-code/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime/reload patches, extension-runtime/tool-call behavior, and OpenRouter multimodal routing behavior.
 
 Patch entries may include a `references` array. Keep it updated when adding, changing, or deleting a patch:
 

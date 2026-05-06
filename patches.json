@@ -111,6 +111,27 @@
     ]
   },
   {
+    "id": "030-reload-reopens-current-session-file",
+    "file": "dist/core/agent-session.js",
+    "intent": "Make /reload reopen the current session file from disk before rebuilding chat, so the same session is refreshed instead of keeping stale in-memory entries.",
+    "find": "    async reload() {\n        const previousFlagValues = this._extensionRunner.getFlagValues();\n        await emitSessionShutdownEvent(this._extensionRunner, { type: \"session_shutdown\", reason: \"reload\" });\n        await this.settingsManager.reload();\n        resetApiProviders();\n        await this._resourceLoader.reload();\n        this._buildRuntime({",
+    "replace": "    async reload() {\n        const previousFlagValues = this._extensionRunner.getFlagValues();\n        const currentSessionFile = this.sessionManager.getSessionFile();\n        await emitSessionShutdownEvent(this._extensionRunner, { type: \"session_shutdown\", reason: \"reload\" });\n        await this.settingsManager.reload();\n        resetApiProviders();\n        await this._resourceLoader.reload();\n        if (currentSessionFile && existsSync(currentSessionFile)) {\n            this.sessionManager.setSessionFile(currentSessionFile);\n            this.agent.state.messages = this.sessionManager.buildSessionContext().messages;\n        }\n        this._buildRuntime({",
+    "verify": "currentSessionFile && existsSync(currentSessionFile)",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "badlogic/pi-mono",
+        "package": "@mariozechner/pi-coding-agent",
+        "versionConsidered": "0.73.0"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Observed /reload should reopen/refresh the session it was invoked from; upstream reload only rebuilt resources and reused stale in-memory session entries before interactive rebuilt chat. Guarded with existsSync so a brand-new unflushed session keeps its in-memory model/thinking metadata, and reload uses the file's latest leaf so newly appended entries become visible."
+      }
+    ]
+  },
+  {
     "id": "021-osc8-bash-output-urls",
     "file": "dist/core/tools/bash.js",
     "intent": "Wrap bare URLs in rendered bash tool output with OSC 8 so long URLs remain one clickable/copyable link across terminal line wraps.",

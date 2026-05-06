@@ -152,6 +152,18 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
 }
 
 {
+  const source = readFileSync(`${PI_PKG}/dist/core/agent-session.js`, "utf8");
+  assert(
+    "/reload reopens the current session file",
+    source.includes("const currentSessionFile = this.sessionManager.getSessionFile();") &&
+      source.includes("currentSessionFile && existsSync(currentSessionFile)") &&
+      source.includes("this.sessionManager.setSessionFile(currentSessionFile);") &&
+      source.includes("this.agent.state.messages = this.sessionManager.buildSessionContext().messages;"),
+    "agent-session.js missing current-session reload reopen logic",
+  );
+}
+
+{
   const url = "https://agentvibe.pages.dev/join?c=j57bpc9ggjknj4yxc1mz3mr71184b81a&s=6baf0e16358be3b89b9e8c2160d879d61198695d6fac8f1ae317a4d70059b350";
   const bt = "\x60";
   const output = new Markdown(bt + url + bt, 0, 0, basicTheme()).render(80).join("");
