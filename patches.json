@@ -1,7 +1,7 @@
 [
   {
     "id": "007-osc8-codespan-urls",
-    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
     "intent": "Wrap URLs inside inline code spans (`url`) with OSC 8 so they are clickable even when they wrap across terminal lines.",
     "find": "case \"codespan\":\n                    result += this.theme.code(token.text) + stylePrefix;\n                    break;",
     "replace": "case \"codespan\":\n                    if (/^https?:\\/\\//.test(token.text)) {\n                        result += `\\x1b]8;;${token.text}\\x07` + this.theme.code(token.text) + `\\x1b]8;;\\x07` + stylePrefix;\n                    } else {\n                        result += this.theme.code(token.text) + stylePrefix;\n                    }\n                    break;",
@@ -10,8 +10,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-tui"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-tui"
       },
       {
         "type": "consumer-repo",
@@ -26,7 +26,7 @@
   },
   {
     "id": "008-osc8-codeblock-hlline",
-    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
     "intent": "Wrap highlighted code lines that are URLs with OSC 8 in code blocks (both top-level and list-item).",
     "find": "lines.push(`${indent}${hlLine}`);",
     "replace": "{ const __raw = hlLine.replace(/\\x1b\\[[^m]*m/g, '').trim(); lines.push(__raw.match(/^https?:\\/\\/\\S+$/) ? `${indent}\\x1b]8;;${__raw}\\x07${hlLine}\\x1b]8;;\\x07` : `${indent}${hlLine}`); }",
@@ -35,8 +35,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-tui"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-tui"
       },
       {
         "type": "consumer-repo",
@@ -51,7 +51,7 @@
   },
   {
     "id": "009-osc8-codeblock-codeline",
-    "file": "node_modules/@mariozechner/pi-tui/dist/components/markdown.js",
+    "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
     "intent": "Wrap plain code lines that are URLs with OSC 8 in code blocks (both top-level and list-item).",
     "find": "lines.push(`${indent}${this.theme.codeBlock(codeLine)}`);",
     "replace": "{ const __styled = this.theme.codeBlock(codeLine); lines.push(codeLine.trim().match(/^https?:\\/\\/\\S+$/) ? `${indent}\\x1b]8;;${codeLine.trim()}\\x07${__styled}\\x1b]8;;\\x07` : `${indent}${__styled}`); }",
@@ -60,8 +60,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-tui"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-tui"
       },
       {
         "type": "consumer-repo",
@@ -78,15 +78,15 @@
     "id": "006-osc8-update-banner",
     "file": "dist/modes/interactive/interactive-mode.js",
     "intent": "Wrap the changelog URL in the update notification banner with OSC 8 so it is clickable even when wrapped across lines.",
-    "find": "const changelogUrl = theme.fg(\"accent\", \"https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\");",
-    "replace": "const changelogRawUrl = \"https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\"; const changelogUrl = `\\x1b]8;;${changelogRawUrl}\\x07` + theme.fg(\"accent\", changelogRawUrl) + `\\x1b]8;;\\x07`;",
+    "find": "const changelogUrl = theme.fg(\"accent\", \"https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\");",
+    "replace": "const changelogRawUrl = \"https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\"; const changelogUrl = `\\x1b]8;;${changelogRawUrl}\\x07` + theme.fg(\"accent\", changelogRawUrl) + `\\x1b]8;;\\x07`;",
     "verify": "changelogRawUrl",
     "occurrences": 1,
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent"
       }
     ]
   },
@@ -101,8 +101,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent"
       },
       {
         "type": "memory-note",
@@ -121,8 +121,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
         "versionConsidered": "0.73.0"
       },
       {
@@ -142,8 +142,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent"
       },
       {
         "type": "memory-note",
@@ -162,8 +162,8 @@
     "references": [
       {
         "type": "upstream-package",
-        "repo": "badlogic/pi-mono",
-        "package": "@mariozechner/pi-coding-agent"
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent"
       },
       {
         "type": "memory-note",

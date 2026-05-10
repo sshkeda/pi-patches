@@ -34,7 +34,9 @@ case "$answer" in
 esac
 
 echo "→ Updating pi via $PI_NPM..."
-"$PI_NPM" install -g --prefix "$PI_PREFIX" @mariozechner/pi-coding-agent@latest
+# Pi moved npm scopes in 0.74.0. Use the new package name; --force lets npm
+# replace the existing `pi` bin when it is still owned by the legacy package.
+"$PI_NPM" install -g --force --prefix "$PI_PREFIX" @earendil-works/pi-coding-agent@latest
 
 echo "→ Re-applying local pi patches..."
 bash "$SCRIPT_DIR/apply.sh"

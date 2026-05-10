@@ -6,5 +6,9 @@
   {
     "name": "pi-claude-code",
     "manifest": "../pi-claude-code/patches/pi-patches.json"
+  },
+  {
+    "name": "pi-script",
+    "manifest": "../pi-script/patches/pi-patches.json"
   }
 ]

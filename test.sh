@@ -5,20 +5,55 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-PI_PKG="$(dirname "$(which pi 2>/dev/null || echo '')")/../lib/node_modules/@mariozechner/pi-coding-agent"
-if [ ! -d "$PI_PKG" ]; then
-  PI_PKG="$HOME/.nvm/versions/node/$(node -v)/lib/node_modules/@mariozechner/pi-coding-agent"
+PI_BIN="$(command -v pi || true)"
+if ! PI_PKG="$(node - "$PI_BIN" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+const bin = process.argv[2];
+const candidates = [];
+if (bin) {
+  try {
+    const realBin = fs.realpathSync(bin);
+    candidates.push(path.resolve(path.dirname(realBin), ".."));
+  } catch {}
+  const binDir = path.dirname(bin);
+  candidates.push(path.resolve(binDir, "../lib/node_modules/@earendil-works/pi-coding-agent"));
+  candidates.push(path.resolve(binDir, "../lib/node_modules/@mariozechner/pi-coding-agent"));
+}
+candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
+candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@mariozechner/pi-coding-agent"));
+for (const candidate of candidates) {
+  if (fs.existsSync(path.join(candidate, "package.json"))) {
+    console.log(candidate);
+    process.exit(0);
+  }
+}
+process.exit(1);
+NODE
+)"; then
+  echo "ERROR: pi-coding-agent not found. Is pi installed?" >&2
+  exit 1
 fi
 
-PI_TUI="$PI_PKG/node_modules/@mariozechner/pi-tui"
+if [ -d "$PI_PKG/node_modules/@earendil-works/pi-tui" ]; then
+  PI_TUI="$PI_PKG/node_modules/@earendil-works/pi-tui"
+  PI_AI="$PI_PKG/node_modules/@earendil-works/pi-ai"
+  PI_AGENT_CORE="$PI_PKG/node_modules/@earendil-works/pi-agent-core"
+else
+  PI_TUI="$PI_PKG/node_modules/@mariozechner/pi-tui"
+  PI_AI="$PI_PKG/node_modules/@mariozechner/pi-ai"
+  PI_AGENT_CORE="$PI_PKG/node_modules/@mariozechner/pi-agent-core"
+fi
 
 echo "→ Running pi-patches verification tests..."
 
-PI_PKG="$PI_PKG" PI_TUI="$PI_TUI" node --input-type=module <<'SCRIPT'
+PI_PKG="$PI_PKG" PI_TUI="$PI_TUI" PI_AI="$PI_AI" PI_AGENT_CORE="$PI_AGENT_CORE" node --input-type=module <<'SCRIPT'
 import { readFileSync } from "node:fs";
 
 const PI_PKG = process.env.PI_PKG;
 const PI_TUI = process.env.PI_TUI;
+const PI_AI = process.env.PI_AI;
+const PI_AGENT_CORE = process.env.PI_AGENT_CORE;
 
 const { wrapTextWithAnsi } = await import(`${PI_TUI}/dist/utils.js`);
 const { setCapabilities } = await import(`${PI_TUI}/dist/terminal-image.js`);
@@ -220,9 +255,21 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
   const runnerSource = readFileSync(`${PI_PKG}/dist/core/extensions/runner.js`, "utf8");
   assert(
     "Extension runner binds tool lookup helpers",
-    runnerSource.includes("this.runtime.getToolDefinition = (toolName) => this.getToolDefinition(toolName);") &&
-      runnerSource.includes("this.runtime.getAllRegisteredTools = () => this.getAllRegisteredTools();"),
+    (runnerSource.includes("this.runtime.getToolDefinition = (toolName) => this.getToolDefinition(toolName);") ||
+      runnerSource.includes("actions.getToolDefinition ?? ((toolName) => this.getToolDefinition(toolName))")) &&
+      (runnerSource.includes("this.runtime.getAllRegisteredTools = () => this.getAllRegisteredTools();") ||
+        runnerSource.includes("actions.getAllRegisteredTools ?? (() => this.getAllRegisteredTools())")),
     "runner.js missing runtime bindings",
+  );
+}
+
+{
+  const agentSessionSource = readFileSync(`${PI_PKG}/dist/core/agent-session.js`, "utf8");
+  assert(
+    "AgentSession exposes full tool definition lookup actions",
+    agentSessionSource.includes("getToolDefinition: (name) => this.getToolDefinition(name)") &&
+      agentSessionSource.includes("getAllRegisteredTools: () => Array.from(this._toolDefinitions.values())"),
+    "agent-session.js missing full tool lookup actions",
   );
 }
 
@@ -234,7 +281,7 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
 }
 
 {
-  const coreTypesSource = readFileSync(`${PI_PKG}/node_modules/@mariozechner/pi-agent-core/dist/types.d.ts`, "utf8");
+  const coreTypesSource = readFileSync(`${PI_AGENT_CORE}/dist/types.d.ts`, "utf8");
   const beforeToolCallResult = coreTypesSource.match(/export interface BeforeToolCallResult \{[\s\S]*?\n\}/)?.[0] ?? "";
   assert(
     "beforeToolCall result supports concrete content/details/isError",
@@ -246,7 +293,7 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
 }
 
 {
-  const coreLoopSource = readFileSync(`${PI_PKG}/node_modules/@mariozechner/pi-agent-core/dist/agent-loop.js`, "utf8");
+  const coreLoopSource = readFileSync(`${PI_AGENT_CORE}/dist/agent-loop.js`, "utf8");
   assert(
     "agent loop honors beforeToolCall concrete result payloads",
     coreLoopSource.includes("beforeResult.content || beforeResult.details !== undefined") &&
@@ -301,7 +348,7 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
 }
 
 // ── OpenRouter multimodal routing patches from pi-read (016–018) ───────────
-const { convertMessages } = await import(`${PI_PKG}/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js`);
+const { convertMessages } = await import(`${PI_AI}/dist/providers/openai-completions.js`);
 
 function openRouterModel() {
   return {

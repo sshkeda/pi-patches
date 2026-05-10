@@ -1,6 +1,6 @@
 # pi-patches Agent Instructions
 
-This repo maintains local install-time patches for the globally installed `@mariozechner/pi-coding-agent` package and orchestrates additional patch manifests from sibling repos.
+This repo maintains local install-time patches for the globally installed Pi coding-agent package (`@earendil-works/pi-coding-agent`, with legacy `@mariozechner/pi-coding-agent` compatibility) and orchestrates additional patch manifests from sibling repos.
 
 ## Project overview
 
@@ -31,7 +31,7 @@ Key files:
 Use this workflow when the user asks to run/review `pi-update`, update Pi, review upstream Pi changes, or prepare this repo for a Pi upgrade.
 
 1. Read `UPDATE_INSTRUCTIONS.md` and follow it for the detailed review/update process.
-2. Review the upstream Pi changelog at `https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md`.
+2. Review the upstream Pi changelog at `https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md`.
 3. Inspect at least `patches.json`, `sources.json`, `apply.sh`, `test.sh`, `README.md`, and every external manifest referenced by `sources.json`.
 4. Verify JSON/shell syntax and external manifest availability before drawing conclusions.
 5. Test patch applicability against the current/latest upstream Pi package shape when practical, preferably in an isolated global-prefix install before touching the active install.

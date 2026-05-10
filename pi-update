@@ -7,7 +7,7 @@
 #   pi-update [extra pi args...]
 #
 # Environment overrides:
-#   PI_UPDATE_MODEL=openai-codex/gpt-5.5
+#   PI_UPDATE_MODEL=pi-codex/gpt-5.5-fast
 #   PI_UPDATE_THINKING=medium
 #   PI_UPDATE_CHANGELOG_URL=https://...
 # ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ if [ -z "$PI_BIN" ]; then
 fi
 
 # Optional global profile. Example ~/.pi/agent/pi-update.env:
-#   PI_UPDATE_MODEL=openai-codex/gpt-5.5
+#   PI_UPDATE_MODEL=pi-codex/gpt-5.5-fast
 #   PI_UPDATE_THINKING=medium
 # Explicit environment variables from the shell win over this file.
 _PRE_MODEL_SET="${PI_UPDATE_MODEL+x}"
@@ -40,9 +40,9 @@ if [ -n "$_PRE_MODEL_SET" ]; then PI_UPDATE_MODEL="$_PRE_MODEL"; fi
 if [ -n "$_PRE_THINKING_SET" ]; then PI_UPDATE_THINKING="$_PRE_THINKING"; fi
 if [ -n "$_PRE_CHANGELOG_SET" ]; then PI_UPDATE_CHANGELOG_URL="$_PRE_CHANGELOG"; fi
 
-MODEL="${PI_UPDATE_MODEL:-openai-codex/gpt-5.5}"
+MODEL="${PI_UPDATE_MODEL:-pi-codex/gpt-5.5-fast}"
 THINKING="${PI_UPDATE_THINKING:-medium}"
-CHANGELOG_URL="${PI_UPDATE_CHANGELOG_URL:-https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md}"
+CHANGELOG_URL="${PI_UPDATE_CHANGELOG_URL:-https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md}"
 
 PROMPT="Read UPDATE_INSTRUCTIONS.md and use it to review/update this pi-patches repo. If verification shows the update path is safe, run the real Pi upgrade flow; stop only for a real conflict, failed check, unavailable referenced source, destructive ambiguity, or another serious verified uncertainty."
 

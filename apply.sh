@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # Apply pi-patches to pi's installed node_modules.
-# Run after `npm install -g @mariozechner/pi-coding-agent` or any pi upgrade.
+# Run after `npm install -g @earendil-works/pi-coding-agent` or any pi upgrade.
 #
 # Usage: bash patches/apply.sh
 # ---------------------------------------------------------------------------
@@ -11,14 +11,36 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCHES_FILE="$SCRIPT_DIR/patches.json"
 SOURCES_FILE="$SCRIPT_DIR/sources.json"
 
-# Find pi's install location
-PI_PKG="$(dirname "$(which pi 2>/dev/null || echo '')")/../lib/node_modules/@mariozechner/pi-coding-agent"
-if [ ! -d "$PI_PKG" ]; then
-  # Fallback: check common nvm location
-  PI_PKG="$HOME/.nvm/versions/node/$(node -v)/lib/node_modules/@mariozechner/pi-coding-agent"
-fi
-
-if [ ! -d "$PI_PKG" ]; then
+# Find pi's install location. Pi moved from @mariozechner/* to
+# @earendil-works/* in 0.74.0; keep both paths so patched installs can be
+# verified before and after the scope migration.
+PI_BIN="$(command -v pi || true)"
+if ! PI_PKG="$(node - "$PI_BIN" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+const bin = process.argv[2];
+const candidates = [];
+if (bin) {
+  try {
+    const realBin = fs.realpathSync(bin);
+    // npm bin points at <pkg>/dist/cli.js.
+    candidates.push(path.resolve(path.dirname(realBin), ".."));
+  } catch {}
+  const binDir = path.dirname(bin);
+  candidates.push(path.resolve(binDir, "../lib/node_modules/@earendil-works/pi-coding-agent"));
+  candidates.push(path.resolve(binDir, "../lib/node_modules/@mariozechner/pi-coding-agent"));
+}
+candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
+candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@mariozechner/pi-coding-agent"));
+for (const candidate of candidates) {
+  if (fs.existsSync(path.join(candidate, "package.json"))) {
+    console.log(candidate);
+    process.exit(0);
+  }
+}
+process.exit(1);
+NODE
+)"; then
   echo "ERROR: pi-coding-agent not found. Is pi installed?" >&2
   exit 1
 fi
@@ -72,14 +94,31 @@ if (existsSync(sourcesFile)) {
   }
 }
 
+function resolvePatchFile(file) {
+  const candidates = [file];
+  if (file.includes("node_modules/@mariozechner/")) {
+    candidates.push(file.replace("node_modules/@mariozechner/", "node_modules/@earendil-works/"));
+  }
+  if (file.includes("node_modules/@earendil-works/")) {
+    candidates.push(file.replace("node_modules/@earendil-works/", "node_modules/@mariozechner/"));
+  }
+  for (const candidate of candidates) {
+    const filePath = join(piPkg, candidate);
+    if (existsSync(filePath)) return { filePath, file: candidate };
+  }
+  return { filePath: join(piPkg, file), file };
+}
+
 for (const patch of patches) {
-  const filePath = join(piPkg, patch.file);
+  const resolved = resolvePatchFile(patch.file);
+  const filePath = resolved.filePath;
   let content;
 
   try {
     content = getContent(filePath);
   } catch {
     console.error("  ✗ [" + patch._source + "/" + patch.id + "] FILE MISSING: " + patch.file);
+    if (resolved.file !== patch.file) console.error("    resolved candidate: " + resolved.file);
     console.error("    intent: " + patch.intent);
     errors++;
     continue;

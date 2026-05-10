@@ -7,7 +7,7 @@ Goal: review upstream Pi changes, verify this repo and its referenced patch sour
 ## Tasks
 
 1. Read the upstream Pi coding-agent changelog:
-   <https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md>
+   <https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md>
 2. Inspect this repository, especially:
    - `patches.json`
    - `sources.json`
