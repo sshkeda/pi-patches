@@ -10,5 +10,9 @@
   {
     "name": "pi-script",
     "manifest": "../pi-script/patches/pi-patches.json"
+  },
+  {
+    "name": "pi-lane",
+    "manifest": "../pi-lane/patches/pi-patches.json"
   }
 ]

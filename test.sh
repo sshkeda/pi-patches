@@ -196,6 +196,11 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
       source.includes("this.agent.state.messages = this.sessionManager.buildSessionContext().messages;"),
     "agent-session.js missing current-session reload reopen logic",
   );
+  assert(
+    "input hooks can refresh active session before prompt build",
+    source.includes("// Refresh agent transcript in case input hooks changed the active session leaf."),
+    "agent-session.js missing input-hook session refresh patch",
+  );
 }
 
 {
@@ -261,6 +266,13 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
         runnerSource.includes("actions.getAllRegisteredTools ?? (() => this.getAllRegisteredTools())")),
     "runner.js missing runtime bindings",
   );
+  assert(
+    "Extension runner exposes invokeTool context action",
+    runnerSource.includes("invokeToolFn = async () => { throw new Error(\"Extension runtime not initialized\"); };") &&
+      runnerSource.includes("this.invokeToolFn = contextActions.invokeTool ?? this.invokeToolFn;") &&
+      runnerSource.includes("return runner.invokeToolFn(name, args, options);"),
+    "runner.js missing invokeTool context action",
+  );
 }
 
 {
@@ -271,6 +283,14 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
       agentSessionSource.includes("getAllRegisteredTools: () => Array.from(this._toolDefinitions.values())"),
     "agent-session.js missing full tool lookup actions",
   );
+  assert(
+    "AgentSession exposes native nested invokeTool",
+    agentSessionSource.includes("async invokeTool(name, args = {}, options = {})") &&
+      agentSessionSource.includes("type: \"tool_execution_start\"") &&
+      agentSessionSource.includes("type: \"tool_execution_end\"") &&
+      agentSessionSource.includes("invokeTool: (name, args, options) => this.invokeTool(name, args, options)"),
+    "agent-session.js missing nested invokeTool implementation",
+  );
 }
 
 {
@@ -278,6 +298,7 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
   assert("Extension types declare getToolDefinition handler", typesSource.includes("export type GetToolDefinitionHandler = (name: string) => ToolDefinition | undefined;"), "types.d.ts missing handler type");
   assert("Extension API declares getToolDefinition()", typesSource.includes("getToolDefinition(name: string): ToolDefinition | undefined;"), "types.d.ts missing API method");
   assert("Extension API declares getAllRegisteredTools()", typesSource.includes("getAllRegisteredTools(): RegisteredTool[];"), "types.d.ts missing registered-tools API method");
+  assert("Extension context declares invokeTool()", typesSource.includes("export interface InvokeToolOptions") && typesSource.includes("invokeTool(name: string, args?: unknown, options?: InvokeToolOptions)"), "types.d.ts missing invokeTool context API");
 }
 
 {
