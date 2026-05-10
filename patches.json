@@ -170,5 +170,65 @@
         "reason": "Companion patch to 021; the helper must be used in bash renderResult preview/expanded output."
       }
     ]
+  },
+  {
+    "id": "031-markdown-latex-unicode-helper",
+    "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
+    "intent": "Add a lightweight LaTeX math preprocessor for Markdown chat output. It protects code spans/fences, detects $...$, $$...$$, \\(...\\), and \\[...\\], strips simple text macros, and runs unicodeit to render terminal-friendly Unicode math.",
+    "find": "import { Marked, Tokenizer } from \"marked\";\n",
+    "replace": "import { Marked, Tokenizer } from \"marked\";\nimport { createRequire } from \"node:module\";\n",
+    "verify": "import { createRequire } from \"node:module\";",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-tui"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Pi terminal markdown showed raw LaTeX math (e.g. Beta-Binomial equations) in chat; use unicodeit as a lightweight robust text renderer before considering image-based MathJax/KaTeX."
+      }
+    ]
+  },
+  {
+    "id": "032-markdown-latex-unicode-render",
+    "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
+    "intent": "Run Markdown input through the LaTeX-to-Unicode preprocessor before marked lexing, so math delimiters render as readable terminal Unicode instead of raw TeX.",
+    "find": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\n",
+    "replace": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\nconst __piPatchesRequire = createRequire(import.meta.url);\nlet __unicodeitReplace = null;\ntry {\n    const unicodeit = __piPatchesRequire(\"unicodeit\");\n    __unicodeitReplace = unicodeit.replace || unicodeit.default?.replace || null;\n}\ncatch { }\nfunction replaceSimpleLatexTextMacros(math) {\n    let previous;\n    let current = math;\n    do {\n        previous = current;\n        current = current\n            .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, \"$1\")\n            .replace(/\\\\frac\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}/g, \"($1)/($2)\");\n    } while (current !== previous);\n    return current;\n}\nfunction fallbackLatexToUnicode(math) {\n    return math\n        .replace(/\\\\alpha/g, \"\u03b1\").replace(/\\\\beta/g, \"\u03b2\").replace(/\\\\gamma/g, \"\u03b3\").replace(/\\\\delta/g, \"\u03b4\")\n        .replace(/\\\\theta/g, \"\u03b8\").replace(/\\\\lambda/g, \"\u03bb\").replace(/\\\\mu/g, \"\u03bc\").replace(/\\\\pi/g, \"\u03c0\")\n        .replace(/\\\\sigma/g, \"\u03c3\").replace(/\\\\Sigma/g, \"\u03a3\").replace(/\\\\infty/g, \"\u221e\")\n        .replace(/\\\\sim/g, \"\u223c\").replace(/\\\\mid/g, \"\u2223\").replace(/\\\\leq/g, \"\u2264\").replace(/\\\\geq/g, \"\u2265\")\n        .replace(/\\\\neq/g, \"\u2260\").replace(/\\\\times/g, \"\u00d7\").replace(/\\\\cdot/g, \"\u00b7\")\n        .replace(/\\\\in/g, \"\u2208\").replace(/\\\\notin/g, \"\u2209\").replace(/\\\\to/g, \"\u2192\");\n}\nfunction renderLatexMathToUnicode(math) {\n    const cleaned = replaceSimpleLatexTextMacros(math).replace(/\\s+/g, \" \").trim();\n    if (!cleaned) return \"\";\n    try {\n        if (__unicodeitReplace) return __unicodeitReplace(cleaned);\n    }\n    catch { }\n    return fallbackLatexToUnicode(cleaned);\n}\nfunction renderLatexMathInMarkdown(text) {\n    const protectedSegments = [];\n    const protect = (match) => {\n        const marker = `\\u0000PI_CODE_${protectedSegments.length}\\u0000`;\n        protectedSegments.push(match);\n        return marker;\n    };\n    let output = text.replace(/```[\\s\\S]*?```|`[^`\\n]*`/g, protect);\n    output = output\n        .replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\\\\\(([\\s\\S]*?)\\\\\\)/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/(^|[^\\\\$])\\$(?!\\$)([^$\\n]+?)(?<!\\\\)\\$/g, (_match, prefix, math) => prefix + renderLatexMathToUnicode(math));\n    return output.replace(/\\u0000PI_CODE_(\\d+)\\u0000/g, (_match, index) => protectedSegments[Number(index)] ?? _match);\n}\n",
+    "verify": "function renderLatexMathInMarkdown(text)",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-tui"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Pi terminal markdown showed raw LaTeX math (e.g. Beta-Binomial equations) in chat; use unicodeit as a lightweight robust text renderer before considering image-based MathJax/KaTeX."
+      }
+    ]
+  },
+  {
+    "id": "033-markdown-latex-unicode-call",
+    "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
+    "intent": "Apply LaTeX math Unicode rendering to normalized markdown text before tokenization.",
+    "find": "const normalizedText = this.text.replace(/\\t/g, \"   \");",
+    "replace": "const normalizedText = renderLatexMathInMarkdown(this.text.replace(/\\t/g, \"   \"));",
+    "verify": "renderLatexMathInMarkdown(this.text.replace(/\\t/g",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-tui"
+      },
+      {
+        "type": "memory-note",
+        "reason": "Pi terminal markdown showed raw LaTeX math (e.g. Beta-Binomial equations) in chat; use unicodeit as a lightweight robust text renderer before considering image-based MathJax/KaTeX."
+      }
+    ]
   }
 ]

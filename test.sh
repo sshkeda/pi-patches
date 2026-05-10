@@ -180,6 +180,30 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
   assert("Second markdown link has correct URL", hasOsc8Open(output, "https://b.com"), "Output: " + JSON.stringify(output));
 }
 
+// ── Local LaTeX math rendering patch (031–033) ─────────────────────────────
+{
+  const output = new Markdown(String.raw`\[\theta_i \sim \text{Beta}(\alpha, \beta)\]`, 0, 0, basicTheme()).render(80).join("\n");
+  assert(
+    "Block LaTeX renders to Unicode math",
+    output.includes("θᵢ ∼ Beta(α, β)") && !output.includes("\\theta") && !output.includes("\\text"),
+    "Output: " + JSON.stringify(output),
+  );
+}
+
+{
+  const output = new Markdown(String.raw`Inline $Y_i \mid \theta_i \sim \text{Binomial}(n_i, \theta_i)$ done`, 0, 0, basicTheme()).render(100).join("\n");
+  assert(
+    "Inline dollar LaTeX renders to Unicode math",
+    output.includes("Yᵢ ∣ θᵢ ∼ Binomial(nᵢ, θᵢ)") && !output.includes("\\mid") && !output.includes("\\text"),
+    "Output: " + JSON.stringify(output),
+  );
+}
+
+{
+  const output = new Markdown(String.raw`Code stays raw: \`$\theta_i$\``, 0, 0, basicTheme()).render(80).join("\n");
+  assert("LaTeX inside code spans is protected", output.includes(String.raw`$\theta_i$`), "Output: " + JSON.stringify(output));
+}
+
 // ── Local OSC 8 coverage patches (006–009) ─────────────────────────────────
 {
   const source = readFileSync(`${PI_PKG}/dist/modes/interactive/interactive-mode.js`, "utf8");

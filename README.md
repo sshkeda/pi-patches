@@ -6,6 +6,7 @@ Today this repo owns local patches for:
 - **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (update banner, inline code spans, and URL-only code-block lines)
 - **bash timeout prompt clarity** so models see that the bash tool's `timeout` argument is in seconds, not milliseconds
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
+- **terminal LaTeX math Unicode rendering** so `$...$`, `$$...$$`, `\\(...\\)`, and `\\[...\\]` display as readable Unicode instead of raw TeX
 - **`/reload` current-session refresh** so reload reopens the session file it was invoked from before rebuilding chat
 - **scope-migration-aware patching** that supports Pi's move from `@mariozechner/*` to `@earendil-works/*` in upstream `0.74.0`
 - **conflict-pruned patch manifests** that stay compatible with upstream `0.67.6+`, where base markdown OSC 8 links and wrap tracking are now built in
@@ -98,6 +99,7 @@ bash test.sh
 | 008–009 | `markdown.js` | Wrap URL-only lines in code blocks (highlighted + plain) |
 | 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds |
 | 021–022 | `tools/bash.js` | Wrap bare URLs in rendered bash tool output with OSC 8 hyperlinks |
+| 031–033 | `markdown.js` | Convert common LaTeX math delimiters through `unicodeit` into terminal-friendly Unicode |
 | 030 | `agent-session.js` | Reopen the current session file during `/reload` before rebuilding chat |
 | external (`pi-read` 016–018) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
 | external (`pi-claude-code` 010–019) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge pre-computed tool results |

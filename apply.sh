@@ -48,6 +48,11 @@ fi
 PI_VERSION=$(node -p "require('$PI_PKG/package.json').version")
 echo "→ Patching pi $PI_VERSION"
 
+if ! PI_PKG="$PI_PKG" node -e 'require.resolve("unicodeit", { paths: [process.env.PI_PKG] })' >/dev/null 2>&1; then
+  echo "→ Installing unicodeit for terminal LaTeX rendering"
+  npm install --prefix "$PI_PKG" --no-save --omit=dev --ignore-scripts unicodeit@0.7.5 >/dev/null
+fi
+
 node --input-type=module << SCRIPT
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
