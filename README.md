@@ -15,6 +15,7 @@ It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
 - **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve pre-computed tool results directly
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
+- **`../pi-autocompact/patches/pi-patches.json`** — keeps native compaction but slides the summary cut point when needed so the compaction summarizer request fits the model context window
 
 ## Usage
 
@@ -121,7 +122,7 @@ bash test.sh
 
 `upgrade.sh` is the explicit mutating updater used by the review session when the path is safe. It confirms first, then reinstalls Pi globally, runs `apply.sh`, and runs `test.sh`. In an agent-run session after safe verification, the confirmation can be supplied explicitly (for example, `printf 'y\n' | bash upgrade.sh`).
 
-`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (currently `../pi-read/patches/pi-patches.json`, `../pi-claude-code/patches/pi-patches.json`, and `../pi-script/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory under either the new `@earendil-works` scope or the legacy `@mariozechner` scope, maps legacy dependency paths in manifests to the installed scope when needed, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime/reload patches, extension-runtime/tool-call behavior, and OpenRouter multimodal routing behavior.
+`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (currently `../pi-read/patches/pi-patches.json`, `../pi-claude-code/patches/pi-patches.json`, `../pi-script/patches/pi-patches.json`, `../pi-lane/patches/pi-patches.json`, and `../pi-autocompact/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory under either the new `@earendil-works` scope or the legacy `@mariozechner` scope, maps legacy dependency paths in manifests to the installed scope when needed, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime/reload patches, extension-runtime/tool-call behavior, OpenRouter multimodal routing behavior, and pi-autocompact behavior.
 
 Patch entries may include a `references` array. Keep it updated when adding, changing, or deleting a patch:
 
