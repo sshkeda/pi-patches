@@ -489,3 +489,9 @@ console.log("");
 console.log(`→ ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 SCRIPT
+
+# ── External behavioral tests ───────────────────────────────────────────────
+if [ -x "$(dirname "$0")/../pi-autocompact/test.sh" ]; then
+  echo "→ Running pi-autocompact behavioral tests..."
+  bash "$(dirname "$0")/../pi-autocompact/test.sh"
+fi

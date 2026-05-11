@@ -14,5 +14,9 @@
   {
     "name": "pi-lane",
     "manifest": "../pi-lane/patches/pi-patches.json"
+  },
+  {
+    "name": "pi-autocompact",
+    "manifest": "../pi-autocompact/patches/pi-patches.json"
   }
 ]
