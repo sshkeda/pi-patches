@@ -3,7 +3,7 @@
 Small install-time patches for [pi](https://github.com/earendil-works/pi-mono).
 
 Today this repo owns local patches for:
-- **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (update banner, inline code spans, and URL-only code-block lines)
+- **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (inline code spans and URL-only code-block lines)
 - **bash timeout prompt clarity** so models see that the bash tool's `timeout` argument is in seconds, not milliseconds
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
 - **terminal LaTeX math Unicode rendering** so `$...$`, `$$...$$`, `\\(...\\)`, and `\\[...\\]` display as readable Unicode instead of raw TeX
@@ -15,7 +15,9 @@ It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
 - **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve pre-computed tool results directly
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
+- **`../pi-lane/patches/pi-patches.json`** — refreshes agent state after input hooks so lane/session branching affects the next model request
 - **`../pi-autocompact/patches/pi-patches.json`** — keeps native compaction but slides the summary cut point when needed so the compaction summarizer request fits the model context window
+- **`../pi-sync/patches/pi-patches.json`** — exposes native UI event replay hooks for synced Pi terminals
 
 ## Usage
 
@@ -23,7 +25,7 @@ It also acts as a patch orchestrator for sibling repos. Right now it loads:
 
 `pi-update` launches an interactive review/update session. It starts by reviewing manifests, external sources, patch applicability, and tests; when those checks show the update path is safe, the session should proceed to the real Pi upgrade flow. It should stop instead only for a real conflict, failed check, unavailable referenced source, destructive ambiguity, or another serious verified uncertainty. In other words: launching `pi-update` is enough authorization to update once verification succeeds; it is not supposed to stop for another confirmation unless there is a good verified reason.
 
-The prefilled prompt is short and points Pi at `UPDATE_INSTRUCTIONS.md`, which contains the full workflow. Press Enter/Return to send it when ready, or edit it first.
+The prefilled prompt lives in `PI_UPDATE_PROMPT.md`, with expected extension baseline data in `pi-update-extensions.json`. It requires auditing all launchable Pi installs, active config, discovered/expected extensions, patches, package pins, and tests before performing the real update when safe. Press Enter/Return to send it when ready, or edit it first.
 
 ```bash
 # Launch the dedicated Pi patch-review session
@@ -37,6 +39,7 @@ Defaults:
 
 - model: `pi-codex/gpt-5.5-fast`
 - reasoning/thinking: `medium`
+- prompt file: `PI_UPDATE_PROMPT.md`
 - changelog: <https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md>
 
 Configure defaults globally with an optional profile file:
@@ -53,6 +56,7 @@ Override from zsh or any shell when needed; explicit environment variables win o
 
 ```bash
 PI_UPDATE_MODEL='pi-codex/gpt-5.5-fast' PI_UPDATE_THINKING=medium pi-update
+PI_UPDATE_PROMPT_FILE=/path/to/custom-prompt.md pi-update
 ```
 
 Recommended alias in `~/.zshrc`:
@@ -89,13 +93,19 @@ bash apply.sh
 bash test.sh
 ```
 
+Non-mutating repo checks:
+
+```bash
+bash check.sh
+bash check.sh --with-tests  # also runs bash test.sh against the active Pi install
+```
+
 > **Note:** Patches need to be re-applied after every real Pi update since `npm install -g` replaces node_modules.
 
 ## What it patches
 
 | Patch | File | What |
 |-------|------|------|
-| 006 | `interactive-mode.js` | Make the update banner changelog URL clickable |
 | 007 | `markdown.js` | Wrap URLs in inline code spans (`` `https://...` ``) |
 | 008–009 | `markdown.js` | Wrap URL-only lines in code blocks (highlighted + plain) |
 | 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds |
@@ -105,8 +115,11 @@ bash test.sh
 | external (`pi-read` 016–018) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
 | external (`pi-claude-code` 010–019) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge pre-computed tool results |
 | external (`pi-script` 040–041) | `agent-session.js` and extension runner via `../pi-script/patches/pi-patches.json` | Preserve full built-in + extension tool definition lookup for Pi Script's single-tool SDK mode |
+| external (`pi-lane` 050) | `agent-session.js` via `../pi-lane/patches/pi-patches.json` | Refresh agent state after input hooks so lane/session branching affects the next model request |
+| external (`pi-autocompact`) | compaction code via `../pi-autocompact/patches/pi-patches.json` | Slide the native compaction cut point so summarizer requests fit the model context window |
+| external (`pi-sync` 060–062) | extension runner, interactive mode, and types via `../pi-sync/patches/pi-patches.json` | Expose `replayAgentEvent` so synced terminals can replay native UI events |
 
-> Upstream `0.67.6` absorbed former patches **001–005** by adding native markdown OSC 8 link rendering and hyperlink wrap tracking in Pi TUI (now published as `@earendil-works/pi-tui`).
+> Upstream `0.67.6` absorbed former patches **001–005** by adding native markdown OSC 8 link rendering and hyperlink wrap tracking in Pi TUI (now published as `@earendil-works/pi-tui`). Upstream `0.74.1` absorbed former patch **006** by rendering the interactive update notification changelog as an OSC 8 hyperlink.
 
 ## How it works
 
@@ -114,15 +127,16 @@ bash test.sh
 
 1. checks that `pi` is available on `PATH`
 2. `cd`s into this repo
-3. launches `pi --model "$PI_UPDATE_MODEL" --thinking "$PI_UPDATE_THINKING" --extension ./pi-update-prefill-extension.js`
-4. the extension prefills the editor with a short prompt pointing at `UPDATE_INSTRUCTIONS.md`; it does not auto-submit
-5. after you submit the prompt, the agent reviews the repo and upstream changes, then runs the real upgrade when verification is safe
+3. reads the full prefilled prompt from `PI_UPDATE_PROMPT.md` (or `$PI_UPDATE_PROMPT_FILE`)
+4. launches `pi --model "$PI_UPDATE_MODEL" --thinking "$PI_UPDATE_THINKING" --extension ./pi-update-prefill-extension.js`
+5. the extension prefills the editor with that full Markdown prompt; it does not auto-submit
+6. after you submit the prompt, the agent reviews the repo and upstream changes, then runs the real upgrade when verification is safe
 
 `update.sh` is kept only for backwards compatibility with older aliases and delegates to `pi-update`.
 
 `upgrade.sh` is the explicit mutating updater used by the review session when the path is safe. It confirms first, then reinstalls Pi globally, runs `apply.sh`, and runs `test.sh`. In an agent-run session after safe verification, the confirmation can be supplied explicitly (for example, `printf 'y\n' | bash upgrade.sh`).
 
-`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos (currently `../pi-read/patches/pi-patches.json`, `../pi-claude-code/patches/pi-patches.json`, `../pi-script/patches/pi-patches.json`, `../pi-lane/patches/pi-patches.json`, and `../pi-autocompact/patches/pi-patches.json`). `apply.sh` loads all of them, locates pi's install directory under either the new `@earendil-works` scope or the legacy `@mariozechner` scope, maps legacy dependency paths in manifests to the installed scope when needed, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, the remaining local hyperlink/runtime/reload patches, extension-runtime/tool-call behavior, OpenRouter multimodal routing behavior, and pi-autocompact behavior.
+`patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos; `pi-update-extensions.json` is the expected-extension baseline used during update audits. `check.sh` validates local manifests/source data, external manifest availability, shell syntax, and JavaScript helper syntax without mutating the Pi install. `apply.sh` loads all patch manifests, locates pi's install directory under either the new `@earendil-works` scope or the legacy `@mariozechner` scope, maps legacy dependency paths in manifests to the installed scope when needed, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, local hyperlink/runtime/reload/session patches, extension-runtime/tool-call behavior, OpenRouter multimodal routing behavior, and pi-autocompact behavior.
 
 Patch entries may include a `references` array. Keep it updated when adding, changing, or deleting a patch:
 
