@@ -16,7 +16,6 @@
       {
         "type": "consumer-repo",
         "repo": "agent-recall",
-        "localPath": "/Users/sshkeda/Documents/GitHub/agent-recall",
         "paths": [
           "operating-principles.md"
         ],
@@ -41,7 +40,6 @@
       {
         "type": "consumer-repo",
         "repo": "agent-recall",
-        "localPath": "/Users/sshkeda/Documents/GitHub/agent-recall",
         "paths": [
           "operating-principles.md"
         ],
@@ -66,7 +64,6 @@
       {
         "type": "consumer-repo",
         "repo": "agent-recall",
-        "localPath": "/Users/sshkeda/Documents/GitHub/agent-recall",
         "paths": [
           "operating-principles.md"
         ],
@@ -133,7 +130,6 @@
       {
         "type": "consumer-repo",
         "repo": "pi-lane",
-        "localPath": "/Users/sshkeda/gh/pi-lane",
         "paths": [
           "src/extension.ts",
           "test/pi-lane.test.mjs"
@@ -143,7 +139,6 @@
       {
         "type": "consumer-repo",
         "repo": "pi-background-bash",
-        "localPath": "/Users/sshkeda/gh/pi-background-bash",
         "paths": [
           "extensions/background-bash.ts",
           "test/background-bash.test.mjs"

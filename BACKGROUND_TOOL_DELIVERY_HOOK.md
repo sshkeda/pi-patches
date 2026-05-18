@@ -8,12 +8,12 @@ This is for generic long-running awaited tools (for example `pi-background-tool`
 
 ## Verified Pi 0.75.0 runtime path
 
-Inspected installed Pi source under:
+Inspected installed Pi source under (paths relative to the active Node `node_modules` root, e.g. `~/.nvm/versions/node/<v>/lib/node_modules`):
 
-- `/Users/sshkeda/.nvm/versions/node/v24.13.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js`
-- `/Users/sshkeda/.nvm/versions/node/v24.13.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/sdk.js`
-- `/Users/sshkeda/.nvm/versions/node/v24.13.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js`
-- `/Users/sshkeda/.nvm/versions/node/v24.13.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/messages.js`
+- `@earendil-works/pi-coding-agent/dist/core/agent-session.js`
+- `@earendil-works/pi-coding-agent/dist/core/sdk.js`
+- `@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js`
+- `@earendil-works/pi-coding-agent/dist/core/messages.js`
 
 Observed path:
 
@@ -92,7 +92,7 @@ Regression shape:
 7. Pending UI finishes only after the provider delivery signal, not merely after `sendMessage()` returns.
 8. The model responds to the background context.
 
-Current local proof in `/Users/sshkeda/gh/pi-background-tool`:
+Current local proof in the sibling `pi-background-tool` repo:
 
 ```text
 npm test

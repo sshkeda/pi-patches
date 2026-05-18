@@ -59,16 +59,16 @@ PI_UPDATE_MODEL='pi-codex/gpt-5.5-fast' PI_UPDATE_THINKING=medium pi-update
 PI_UPDATE_PROMPT_FILE=/path/to/custom-prompt.md pi-update
 ```
 
-Recommended alias in `~/.zshrc`:
+Recommended alias in `~/.zshrc` (point at wherever you cloned this repo):
 
 ```bash
-alias pi-update='bash /Users/sshkeda/Documents/GitHub/pi-patches/pi-update'
+alias pi-update='bash "$HOME/path/to/pi-patches/pi-update"'
 ```
 
 The old alias still remains safe if you already have it:
 
 ```bash
-alias pi-update='bash /Users/sshkeda/Documents/GitHub/pi-patches/update.sh'
+alias pi-update='bash "$HOME/path/to/pi-patches/update.sh"'
 ```
 
 ### Explicit mutating upgrade command
@@ -101,6 +101,15 @@ bash check.sh --with-tests  # also runs bash test.sh against the active Pi insta
 ```
 
 > **Note:** Patches need to be re-applied after every real Pi update since `npm install -g` replaces node_modules.
+
+### Pre-commit hook (lefthook)
+
+`lefthook.yml` wires `bash check.sh` into a pre-commit hook so manifest/JSON/shell/JS syntax issues are caught before they land. Install lefthook once, then enable the hook in your local clone:
+
+```bash
+brew install lefthook
+lefthook install
+```
 
 ## What it patches
 
