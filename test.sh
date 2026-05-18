@@ -204,12 +204,7 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
   assert("LaTeX inside code spans is protected", output.includes(String.raw`$\theta_i$`), "Output: " + JSON.stringify(output));
 }
 
-// ── Local OSC 8 coverage patches (006–009) ─────────────────────────────────
-{
-  const source = readFileSync(`${PI_PKG}/dist/modes/interactive/interactive-mode.js`, "utf8");
-  assert("Update banner changelog URL patch is present", source.includes("const changelogRawUrl ="), "interactive-mode.js missing changelogRawUrl helper");
-}
-
+// ── Local OSC 8 coverage patches (007–009) ─────────────────────────────────
 {
   const source = readFileSync(`${PI_PKG}/dist/core/agent-session.js`, "utf8");
   assert(
@@ -224,6 +219,13 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
     "input hooks can refresh active session before prompt build",
     source.includes("// Refresh agent transcript in case input hooks changed the active session leaf."),
     "agent-session.js missing input-hook session refresh patch",
+  );
+  assert(
+    "tool results are reparented to matching tool calls before persistence",
+    source.includes("// Tool results must persist below the assistant message that emitted their tool call,") &&
+      source.includes("event.message.role === \"toolResult\" && typeof event.message.toolCallId === \"string\"") &&
+      source.includes("this.sessionManager.branch(entries[i].id);"),
+    "agent-session.js missing toolResult parent invariant patch",
   );
 }
 

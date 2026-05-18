@@ -27,11 +27,11 @@
   {
     "id": "008-osc8-codeblock-hlline",
     "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
-    "intent": "Wrap highlighted code lines that are URLs with OSC 8 in code blocks (both top-level and list-item).",
+    "intent": "Wrap highlighted code lines that are URLs with OSC 8 in code blocks.",
     "find": "lines.push(`${indent}${hlLine}`);",
     "replace": "{ const __raw = hlLine.replace(/\\x1b\\[[^m]*m/g, '').trim(); lines.push(__raw.match(/^https?:\\/\\/\\S+$/) ? `${indent}\\x1b]8;;${__raw}\\x07${hlLine}\\x1b]8;;\\x07` : `${indent}${hlLine}`); }",
     "verify": "__raw.match(/^https?:",
-    "occurrences": 2,
+    "occurrences": 1,
     "references": [
       {
         "type": "upstream-package",
@@ -52,11 +52,11 @@
   {
     "id": "009-osc8-codeblock-codeline",
     "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
-    "intent": "Wrap plain code lines that are URLs with OSC 8 in code blocks (both top-level and list-item).",
+    "intent": "Wrap plain code lines that are URLs with OSC 8 in code blocks.",
     "find": "lines.push(`${indent}${this.theme.codeBlock(codeLine)}`);",
     "replace": "{ const __styled = this.theme.codeBlock(codeLine); lines.push(codeLine.trim().match(/^https?:\\/\\/\\S+$/) ? `${indent}\\x1b]8;;${codeLine.trim()}\\x07${__styled}\\x1b]8;;\\x07` : `${indent}${__styled}`); }",
     "verify": "codeLine.trim().match(/^https?:",
-    "occurrences": 2,
+    "occurrences": 1,
     "references": [
       {
         "type": "upstream-package",
@@ -71,22 +71,6 @@
           "operating-principles.md"
         ],
         "reason": "Operating principle expects Pi markdown/media ergonomics to work reliably."
-      }
-    ]
-  },
-  {
-    "id": "006-osc8-update-banner",
-    "file": "dist/modes/interactive/interactive-mode.js",
-    "intent": "Wrap the changelog URL in the update notification banner with OSC 8 so it is clickable even when wrapped across lines.",
-    "find": "const changelogUrl = theme.fg(\"accent\", \"https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\");",
-    "replace": "const changelogRawUrl = \"https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md\"; const changelogUrl = `\\x1b]8;;${changelogRawUrl}\\x07` + theme.fg(\"accent\", changelogRawUrl) + `\\x1b]8;;\\x07`;",
-    "verify": "changelogRawUrl",
-    "occurrences": 1,
-    "references": [
-      {
-        "type": "upstream-package",
-        "repo": "earendil-works/pi-mono",
-        "package": "@earendil-works/pi-coding-agent"
       }
     ]
   },
@@ -128,6 +112,43 @@
       {
         "type": "memory-note",
         "reason": "Observed /reload should reopen/refresh the session it was invoked from; upstream reload only rebuilt resources and reused stale in-memory session entries before interactive rebuilt chat. Guarded with existsSync so a brand-new unflushed session keeps its in-memory model/thinking metadata, and reload uses the file's latest leaf so newly appended entries become visible."
+      }
+    ]
+  },
+  {
+    "id": "051-parent-tool-results-to-matching-tool-call-before-persist",
+    "file": "dist/core/agent-session.js",
+    "intent": "Immediately before persisting a toolResult message, ensure the active session leaf is on the parent chain below the assistant message containing the matching toolCallId. This makes final tool-result parenting robust even if message_end extension hooks branch the session leaf after another repair hook runs.",
+    "find": "                // Regular LLM message - persist as SessionMessageEntry\n                this.sessionManager.appendMessage(event.message);",
+    "replace": "                // Tool results must persist below the assistant message that emitted their tool call,\n                // even if message_end extension hooks moved the active session leaf.\n                if (event.message.role === \"toolResult\" && typeof event.message.toolCallId === \"string\") {\n                    const entries = this.sessionManager.getEntries();\n                    const byId = new Map(entries.map((entry) => [entry.id, entry]));\n                    const hasToolCall = (entry) => {\n                        if (entry?.type !== \"message\" || entry.message?.role !== \"assistant\")\n                            return false;\n                        const content = Array.isArray(entry.message.content) ? entry.message.content : [];\n                        return content.some((part) => part?.type === \"toolCall\" && part.id === event.message.toolCallId);\n                    };\n                    let currentId = this.sessionManager.getLeafId();\n                    const seen = new Set();\n                    let alreadyUnderToolCall = false;\n                    while (currentId && !seen.has(currentId)) {\n                        seen.add(currentId);\n                        const current = byId.get(currentId);\n                        if (!current)\n                            break;\n                        if (hasToolCall(current)) {\n                            alreadyUnderToolCall = true;\n                            break;\n                        }\n                        currentId = typeof current.parentId === \"string\" ? current.parentId : null;\n                    }\n                    if (!alreadyUnderToolCall) {\n                        for (let i = entries.length - 1; i >= 0; i--) {\n                            if (hasToolCall(entries[i])) {\n                                this.sessionManager.branch(entries[i].id);\n                                break;\n                            }\n                        }\n                    }\n                }\n                // Regular LLM message - persist as SessionMessageEntry\n                this.sessionManager.appendMessage(event.message);",
+    "verify": "// Tool results must persist below the assistant message that emitted their tool call,",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "versionConsidered": "0.74.0"
+      },
+      {
+        "type": "consumer-repo",
+        "repo": "pi-lane",
+        "localPath": "/Users/sshkeda/gh/pi-lane",
+        "paths": [
+          "src/extension.ts",
+          "test/pi-lane.test.mjs"
+        ],
+        "reason": "pi-lane can expose the core bug by moving the session leaf during message_end hooks, but the toolResult/toolCall persistence invariant is generic Pi behavior."
+      },
+      {
+        "type": "consumer-repo",
+        "repo": "pi-background-bash",
+        "localPath": "/Users/sshkeda/gh/pi-background-bash",
+        "paths": [
+          "extensions/background-bash.ts",
+          "test/background-bash.test.mjs"
+        ],
+        "reason": "pi-background-bash has defensive detached tool-result repairs/provenance because delayed bash completions can encounter the same generic core ordering/persistence class."
       }
     ]
   },
@@ -196,7 +217,7 @@
     "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
     "intent": "Run Markdown input through the LaTeX-to-Unicode preprocessor before marked lexing, so math delimiters render as readable terminal Unicode instead of raw TeX.",
     "find": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\n",
-    "replace": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\nconst __piPatchesRequire = createRequire(import.meta.url);\nlet __unicodeitReplace = null;\ntry {\n    const unicodeit = __piPatchesRequire(\"unicodeit\");\n    __unicodeitReplace = unicodeit.replace || unicodeit.default?.replace || null;\n}\ncatch { }\nfunction replaceSimpleLatexTextMacros(math) {\n    let previous;\n    let current = math;\n    do {\n        previous = current;\n        current = current\n            .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, \"$1\")\n            .replace(/\\\\frac\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}/g, \"($1)/($2)\");\n    } while (current !== previous);\n    return current;\n}\nfunction fallbackLatexToUnicode(math) {\n    return math\n        .replace(/\\\\alpha/g, \"\u03b1\").replace(/\\\\beta/g, \"\u03b2\").replace(/\\\\gamma/g, \"\u03b3\").replace(/\\\\delta/g, \"\u03b4\")\n        .replace(/\\\\theta/g, \"\u03b8\").replace(/\\\\lambda/g, \"\u03bb\").replace(/\\\\mu/g, \"\u03bc\").replace(/\\\\pi/g, \"\u03c0\")\n        .replace(/\\\\sigma/g, \"\u03c3\").replace(/\\\\Sigma/g, \"\u03a3\").replace(/\\\\infty/g, \"\u221e\")\n        .replace(/\\\\sim/g, \"\u223c\").replace(/\\\\mid/g, \"\u2223\").replace(/\\\\leq/g, \"\u2264\").replace(/\\\\geq/g, \"\u2265\")\n        .replace(/\\\\neq/g, \"\u2260\").replace(/\\\\times/g, \"\u00d7\").replace(/\\\\cdot/g, \"\u00b7\")\n        .replace(/\\\\in/g, \"\u2208\").replace(/\\\\notin/g, \"\u2209\").replace(/\\\\to/g, \"\u2192\");\n}\nfunction renderLatexMathToUnicode(math) {\n    const cleaned = replaceSimpleLatexTextMacros(math).replace(/\\s+/g, \" \").trim();\n    if (!cleaned) return \"\";\n    try {\n        if (__unicodeitReplace) return __unicodeitReplace(cleaned);\n    }\n    catch { }\n    return fallbackLatexToUnicode(cleaned);\n}\nfunction renderLatexMathInMarkdown(text) {\n    const protectedSegments = [];\n    const protect = (match) => {\n        const marker = `\\u0000PI_CODE_${protectedSegments.length}\\u0000`;\n        protectedSegments.push(match);\n        return marker;\n    };\n    let output = text.replace(/```[\\s\\S]*?```|`[^`\\n]*`/g, protect);\n    output = output\n        .replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\\\\\(([\\s\\S]*?)\\\\\\)/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/(^|[^\\\\$])\\$(?!\\$)([^$\\n]+?)(?<!\\\\)\\$/g, (_match, prefix, math) => prefix + renderLatexMathToUnicode(math));\n    return output.replace(/\\u0000PI_CODE_(\\d+)\\u0000/g, (_match, index) => protectedSegments[Number(index)] ?? _match);\n}\n",
+    "replace": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\nconst __piPatchesRequire = createRequire(import.meta.url);\nlet __unicodeitReplace = null;\ntry {\n    const unicodeit = __piPatchesRequire(\"unicodeit\");\n    __unicodeitReplace = unicodeit.replace || unicodeit.default?.replace || null;\n}\ncatch { }\nfunction replaceSimpleLatexTextMacros(math) {\n    let previous;\n    let current = math;\n    do {\n        previous = current;\n        current = current\n            .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, \"$1\")\n            .replace(/\\\\frac\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}/g, \"($1)/($2)\");\n    } while (current !== previous);\n    return current;\n}\nfunction fallbackLatexToUnicode(math) {\n    return math\n        .replace(/\\\\alpha/g, \"α\").replace(/\\\\beta/g, \"β\").replace(/\\\\gamma/g, \"γ\").replace(/\\\\delta/g, \"δ\")\n        .replace(/\\\\theta/g, \"θ\").replace(/\\\\lambda/g, \"λ\").replace(/\\\\mu/g, \"μ\").replace(/\\\\pi/g, \"π\")\n        .replace(/\\\\sigma/g, \"σ\").replace(/\\\\Sigma/g, \"Σ\").replace(/\\\\infty/g, \"∞\")\n        .replace(/\\\\sim/g, \"∼\").replace(/\\\\mid/g, \"∣\").replace(/\\\\leq/g, \"≤\").replace(/\\\\geq/g, \"≥\")\n        .replace(/\\\\neq/g, \"≠\").replace(/\\\\times/g, \"×\").replace(/\\\\cdot/g, \"·\")\n        .replace(/\\\\in/g, \"∈\").replace(/\\\\notin/g, \"∉\").replace(/\\\\to/g, \"→\");\n}\nfunction renderLatexMathToUnicode(math) {\n    const cleaned = replaceSimpleLatexTextMacros(math).replace(/\\s+/g, \" \").trim();\n    if (!cleaned) return \"\";\n    try {\n        if (__unicodeitReplace) return __unicodeitReplace(cleaned);\n    }\n    catch { }\n    return fallbackLatexToUnicode(cleaned);\n}\nfunction renderLatexMathInMarkdown(text) {\n    const protectedSegments = [];\n    const protect = (match) => {\n        const marker = `\\u0000PI_CODE_${protectedSegments.length}\\u0000`;\n        protectedSegments.push(match);\n        return marker;\n    };\n    let output = text.replace(/```[\\s\\S]*?```|`[^`\\n]*`/g, protect);\n    output = output\n        .replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\\\\\(([\\s\\S]*?)\\\\\\)/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/(^|[^\\\\$])\\$(?!\\$)([^$\\n]+?)(?<!\\\\)\\$/g, (_match, prefix, math) => prefix + renderLatexMathToUnicode(math));\n    return output.replace(/\\u0000PI_CODE_(\\d+)\\u0000/g, (_match, index) => protectedSegments[Number(index)] ?? _match);\n}\n",
     "verify": "function renderLatexMathInMarkdown(text)",
     "occurrences": 1,
     "references": [

@@ -18,5 +18,9 @@
   {
     "name": "pi-autocompact",
     "manifest": "../pi-autocompact/patches/pi-patches.json"
+  },
+  {
+    "name": "pi-sync",
+    "manifest": "../pi-sync/patches/pi-patches.json"
   }
 ]
