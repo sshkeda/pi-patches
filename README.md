@@ -13,7 +13,7 @@ Today this repo owns local patches for:
 
 It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
-- **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve pre-computed tool results directly
+- **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve display-only/pre-computed tool results directly
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
 - **`../pi-lane/patches/pi-patches.json`** — refreshes agent state after input hooks so lane/session branching affects the next model request
 - **`../pi-autocompact/patches/pi-patches.json`** — keeps native compaction but slides the summary cut point when needed so the compaction summarizer request fits the model context window
@@ -112,8 +112,9 @@ bash check.sh --with-tests  # also runs bash test.sh against the active Pi insta
 | 021–022 | `tools/bash.js` | Wrap bare URLs in rendered bash tool output with OSC 8 hyperlinks |
 | 031–033 | `markdown.js` | Convert common LaTeX math delimiters through `unicodeit` into terminal-friendly Unicode |
 | 030 | `agent-session.js` | Reopen the current session file during `/reload` before rebuilding chat |
+| external (`pi-sessions` 034–037) | `session-manager.js` and `main.js` via `../pi-sessions/patches/pi-patches.json` | Generate short session IDs and resolve bare `--session <id>` through `~/.pi-sessions/<id>.jsonl` aliases |
 | external (`pi-read` 016–018) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
-| external (`pi-claude-code` 010–019) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge pre-computed tool results |
+| external (`pi-claude-code` 010–020) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge display-only/pre-computed tool results before missing-tool fallback |
 | external (`pi-script` 040–041) | `agent-session.js` and extension runner via `../pi-script/patches/pi-patches.json` | Preserve full built-in + extension tool definition lookup for Pi Script's single-tool SDK mode |
 | external (`pi-lane` 050) | `agent-session.js` via `../pi-lane/patches/pi-patches.json` | Refresh agent state after input hooks so lane/session branching affects the next model request |
 | external (`pi-autocompact`) | compaction code via `../pi-autocompact/patches/pi-patches.json` | Slide the native compaction cut point so summarizer requests fit the model context window |

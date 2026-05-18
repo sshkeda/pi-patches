@@ -56,6 +56,101 @@ bash -n apply.sh check.sh pi-update test.sh update.sh upgrade.sh
 
 echo "→ Checking JavaScript helpers..."
 node --check pi-update-prefill-extension.js
+node --input-type=module <<'SCRIPT'
+import piUpdatePrefill from "./pi-update-prefill-extension.js";
+
+const previousPrompt = process.env.PI_UPDATE_PREFILL_PROMPT;
+const previousExitCode = process.exitCode;
+const previousSetTimeout = globalThis.setTimeout;
+const previousExit = process.exit;
+const previousError = console.error;
+
+try {
+  const handlers = new Map();
+  piUpdatePrefill({
+    on(event, handler) {
+      handlers.set(event, handler);
+    },
+  });
+
+  for (const event of ["session_start", "model_select", "before_agent_start"]) {
+    if (typeof handlers.get(event) !== "function") {
+      throw new Error(`pi-update prefill did not register ${event} guard`);
+    }
+  }
+
+  globalThis.setTimeout = () => ({ unref() {} });
+  process.exit = ((code) => {
+    throw new Error(`unexpected process.exit(${code}) during guard test`);
+  });
+  console.error = () => {};
+
+  let editorText = "";
+  let title = "";
+  let shutdowns = 0;
+  const notifications = [];
+  const ctx = (model) => ({
+    model,
+    shutdown() {
+      shutdowns += 1;
+    },
+    ui: {
+      getEditorText: () => editorText,
+      setEditorText: (value) => {
+        editorText = value;
+      },
+      setTitle: (value) => {
+        title = value;
+      },
+      notify: (message, level) => notifications.push({ message, level }),
+    },
+  });
+
+  process.env.PI_UPDATE_PREFILL_PROMPT = "review prompt";
+  process.exitCode = 0;
+  await handlers.get("session_start")({}, ctx({ provider: "pi-codex", id: "gpt-5.5-fast" }));
+  if (editorText !== "review prompt" || title !== "pi-update patch review") {
+    throw new Error("pi-update prefill did not populate editor for the required model");
+  }
+
+  editorText = "";
+  title = "";
+  shutdowns = 0;
+  notifications.length = 0;
+  process.exitCode = 0;
+  await handlers.get("session_start")({}, ctx({ provider: "google", id: "gemini-3.1-pro-preview" }));
+  if (shutdowns !== 1 || process.exitCode !== 1 || !editorText.includes("requires active model pi-codex/gpt-5.5-fast")) {
+    throw new Error("pi-update session_start guard did not fail fast on the wrong model");
+  }
+  if (notifications[0]?.level !== "error") {
+    throw new Error("pi-update guard did not notify with an error level");
+  }
+
+  shutdowns = 0;
+  process.exitCode = 0;
+  await handlers.get("model_select")(
+    { model: { provider: "google", id: "gemini-3.1-pro-preview" } },
+    ctx({ provider: "pi-codex", id: "gpt-5.5-fast" }),
+  );
+  if (shutdowns !== 1 || process.exitCode !== 1) {
+    throw new Error("pi-update model_select guard did not fail fast on a wrong selected model");
+  }
+
+  shutdowns = 0;
+  process.exitCode = 0;
+  await handlers.get("before_agent_start")({}, ctx({ provider: "openai", id: "gpt-5.5-fast" }));
+  if (shutdowns !== 1 || process.exitCode !== 1) {
+    throw new Error("pi-update before_agent_start guard did not fail fast on a wrong active provider");
+  }
+} finally {
+  if (previousPrompt === undefined) delete process.env.PI_UPDATE_PREFILL_PROMPT;
+  else process.env.PI_UPDATE_PREFILL_PROMPT = previousPrompt;
+  process.exitCode = previousExitCode;
+  globalThis.setTimeout = previousSetTimeout;
+  process.exit = previousExit;
+  console.error = previousError;
+}
+SCRIPT
 
 if [ "$WITH_TESTS" -eq 1 ]; then
   echo "→ Running installed-Pi behavioral tests..."

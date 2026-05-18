@@ -60,6 +60,7 @@ const { setCapabilities } = await import(`${PI_TUI}/dist/terminal-image.js`);
 const { Markdown } = await import(`${PI_TUI}/dist/components/markdown.js`);
 const { initTheme } = await import(`${PI_PKG}/dist/modes/interactive/theme/theme.js`);
 const { createBashToolDefinition } = await import(`${PI_PKG}/dist/core/tools/bash.js`);
+const { SessionManager } = await import(`${PI_PKG}/dist/core/session-manager.js`);
 
 setCapabilities({ images: null, trueColor: true, hyperlinks: true });
 initTheme("dark");
@@ -230,6 +231,27 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
 }
 
 {
+  const source = readFileSync(`${PI_PKG}/dist/core/session-manager.js`, "utf8");
+  const sessionId = SessionManager.inMemory().getSessionId();
+  assert(
+    "new Pi session IDs are short base64url strings",
+    source.includes("randomBytes(9).toString(\"base64url\")") && /^[A-Za-z0-9_-]{12}$/.test(sessionId),
+    `session-manager.js missing short ID patch or generated unexpected id: ${sessionId}`,
+  );
+}
+
+{
+  const source = readFileSync(`${PI_PKG}/dist/main.js`, "utf8");
+  assert(
+    "bare --session tokens resolve through ~/.pi-sessions aliases",
+    source.includes("join(homedir(), \".pi-sessions\", `${sessionArg}.jsonl`)") &&
+      source.includes("if (existsSync(aliasPath))") &&
+      source.includes("return { type: \"path\", path: aliasPath };"),
+    "main.js missing ~/.pi-sessions bare-token resolver",
+  );
+}
+
+{
   const url = "https://agentvibe.pages.dev/join?c=j57bpc9ggjknj4yxc1mz3mr71184b81a&s=6baf0e16358be3b89b9e8c2160d879d61198695d6fac8f1ae317a4d70059b350";
   const bt = "\x60";
   const output = new Markdown(bt + url + bt, 0, 0, basicTheme()).render(80).join("");
@@ -346,6 +368,12 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
     coreLoopSource.includes("beforeResult.content || beforeResult.details !== undefined") &&
       coreLoopSource.includes("beforeResult.isError ?? !(beforeResult.content || beforeResult.details !== undefined)"),
     "pi-agent-core/agent-loop.js missing beforeToolCall short-circuit handling",
+  );
+  assert(
+    "agent loop runs beforeToolCall before missing-tool fallback",
+    coreLoopSource.includes("let validatedArgs = toolCall.arguments ?? {};") &&
+      coreLoopSource.indexOf("if (config.beforeToolCall)") < coreLoopSource.indexOf("createErrorToolResult(`Tool ${toolCall.name} not found`)"),
+    "pi-agent-core/agent-loop.js reports missing tools before extension hooks can short-circuit them",
   );
 }
 

@@ -1,5 +1,9 @@
 [
   {
+    "name": "pi-sessions",
+    "manifest": "../pi-sessions/patches/pi-patches.json"
+  },
+  {
     "name": "pi-read",
     "manifest": "../pi-read/patches/pi-patches.json"
   },
