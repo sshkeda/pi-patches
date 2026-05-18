@@ -9,7 +9,7 @@
 # Environment overrides:
 #   PI_UPDATE_MODEL=pi-codex/gpt-5.5-fast
 #   PI_UPDATE_THINKING=medium
-#   PI_UPDATE_CHANGELOG_URL=https://...
+#   PI_UPDATE_PROMPT_FILE=/path/to/prompt.md
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -30,24 +30,29 @@ _PRE_MODEL_SET="${PI_UPDATE_MODEL+x}"
 _PRE_MODEL="${PI_UPDATE_MODEL-}"
 _PRE_THINKING_SET="${PI_UPDATE_THINKING+x}"
 _PRE_THINKING="${PI_UPDATE_THINKING-}"
-_PRE_CHANGELOG_SET="${PI_UPDATE_CHANGELOG_URL+x}"
-_PRE_CHANGELOG="${PI_UPDATE_CHANGELOG_URL-}"
+_PRE_PROMPT_FILE_SET="${PI_UPDATE_PROMPT_FILE+x}"
+_PRE_PROMPT_FILE="${PI_UPDATE_PROMPT_FILE-}"
 if [ -f "$CONFIG_FILE" ]; then
   # shellcheck disable=SC1090
   source "$CONFIG_FILE"
 fi
 if [ -n "$_PRE_MODEL_SET" ]; then PI_UPDATE_MODEL="$_PRE_MODEL"; fi
 if [ -n "$_PRE_THINKING_SET" ]; then PI_UPDATE_THINKING="$_PRE_THINKING"; fi
-if [ -n "$_PRE_CHANGELOG_SET" ]; then PI_UPDATE_CHANGELOG_URL="$_PRE_CHANGELOG"; fi
+if [ -n "$_PRE_PROMPT_FILE_SET" ]; then PI_UPDATE_PROMPT_FILE="$_PRE_PROMPT_FILE"; fi
 
 MODEL="${PI_UPDATE_MODEL:-pi-codex/gpt-5.5-fast}"
 THINKING="${PI_UPDATE_THINKING:-medium}"
-CHANGELOG_URL="${PI_UPDATE_CHANGELOG_URL:-https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md}"
+PROMPT_FILE="${PI_UPDATE_PROMPT_FILE:-$SCRIPT_DIR/PI_UPDATE_PROMPT.md}"
 
-PROMPT="Read UPDATE_INSTRUCTIONS.md and use it to review/update this pi-patches repo. If verification shows the update path is safe, run the real Pi upgrade flow; stop only for a real conflict, failed check, unavailable referenced source, destructive ambiguity, or another serious verified uncertainty."
+if [ ! -f "$PROMPT_FILE" ]; then
+  echo "ERROR: pi-update prompt file not found: $PROMPT_FILE" >&2
+  exit 1
+fi
+PROMPT="$(cat "$PROMPT_FILE")"
 
 echo "→ Launching pi-update review session in $SCRIPT_DIR"
 echo "→ Model: $MODEL, thinking: $THINKING"
+echo "→ Prompt: $PROMPT_FILE"
 echo "→ The editor will be prefilled; press Enter/Return when you want to send it."
 cd "$SCRIPT_DIR"
 export PI_UPDATE_PREFILL_PROMPT="$PROMPT"
