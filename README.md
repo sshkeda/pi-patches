@@ -24,7 +24,6 @@ This repo currently owns local patches for:
 
 It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
-- **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve display-only/pre-computed tool results directly
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
 - **`../pi-sync/patches/pi-patches.json`** — refreshes agent state after input hooks and exposes native UI event replay hooks for synced Pi terminals
 
@@ -187,10 +186,6 @@ These patches were added in the [initial commit `76441ee`](https://github.com/ss
 
 | IDs | What | Removed | Migrated to | Removal commit |
 |---|---|---|---|---|
-| 010–019 | extension runtime / tool lookup hooks (provider-bridge support) | 2026-05-03 | [`pi-claude-code/patches/pi-patches.json`](https://github.com/sshkeda/pi-claude-code/blob/main/patches/pi-patches.json) | [`6ec028b`](https://github.com/sshkeda/pi-patches/commit/6ec028b) |
-
-The 010–019 series was originally added in [`f60cc09`](https://github.com/sshkeda/pi-patches/commit/f60cc09) (010–015), [`32e04ee`](https://github.com/sshkeda/pi-patches/commit/32e04ee) (016–018), and [`a41f6d9`](https://github.com/sshkeda/pi-patches/commit/a41f6d9) (019). They were scoped specifically to the pi-claude-code provider bridge, so ownership moved to the [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) repo where the provider lives. pi-patches still loads them at apply time via `sources.json`.
-
 ### Briefly removed and restored
 
 | IDs | What happened |
@@ -204,7 +199,6 @@ These never lived in `patches.json` directly; pi-patches loads them via [`source
 | Sibling repo | What | Manifest |
 |---|---|---|
 | [`pi-read`](https://github.com/sshkeda/pi-read) | OpenRouter native `input_audio` / `video_url` / `file` routing for multimodal Gemini reads | `../pi-read/patches/pi-patches.json` |
-| [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) | Extension runtime tool lookup, short-circuit results, provider-bridge display-only handling | `../pi-claude-code/patches/pi-patches.json` |
 | [`pi-script`](https://github.com/sshkeda/pi-script) | AgentSession-backed full tool-definition lookup for single-tool SDK mode | `../pi-script/patches/pi-patches.json` |
 | [`pi-lane`](https://github.com/sshkeda/pi-lane) | Agent state refresh after input hooks for lane/session branching | `../pi-lane/patches/pi-patches.json` |
 | [`pi-sessions`](https://github.com/sshkeda/pi-sessions) | Short base64url session IDs and bare `--session <id>` resolution | `../pi-sessions/patches/pi-patches.json` |
