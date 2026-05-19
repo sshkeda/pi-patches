@@ -11,9 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCHES_FILE="$SCRIPT_DIR/patches.json"
 SOURCES_FILE="$SCRIPT_DIR/sources.json"
 
-# Find pi's install location. Pi moved from @mariozechner/* to
-# @earendil-works/* in 0.74.0; keep both paths so patched installs can be
-# verified before and after the scope migration.
+# Find pi's install location under the @earendil-works scope.
 PI_BIN="$(command -v pi || true)"
 if ! PI_PKG="$(node - "$PI_BIN" <<'NODE'
 const fs = require("fs");
@@ -28,10 +26,8 @@ if (bin) {
   } catch {}
   const binDir = path.dirname(bin);
   candidates.push(path.resolve(binDir, "../lib/node_modules/@earendil-works/pi-coding-agent"));
-  candidates.push(path.resolve(binDir, "../lib/node_modules/@mariozechner/pi-coding-agent"));
 }
 candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
-candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@mariozechner/pi-coding-agent"));
 for (const candidate of candidates) {
   if (fs.existsSync(path.join(candidate, "package.json"))) {
     console.log(candidate);
@@ -99,31 +95,14 @@ if (existsSync(sourcesFile)) {
   }
 }
 
-function resolvePatchFile(file) {
-  const candidates = [file];
-  if (file.includes("node_modules/@mariozechner/")) {
-    candidates.push(file.replace("node_modules/@mariozechner/", "node_modules/@earendil-works/"));
-  }
-  if (file.includes("node_modules/@earendil-works/")) {
-    candidates.push(file.replace("node_modules/@earendil-works/", "node_modules/@mariozechner/"));
-  }
-  for (const candidate of candidates) {
-    const filePath = join(piPkg, candidate);
-    if (existsSync(filePath)) return { filePath, file: candidate };
-  }
-  return { filePath: join(piPkg, file), file };
-}
-
 for (const patch of patches) {
-  const resolved = resolvePatchFile(patch.file);
-  const filePath = resolved.filePath;
+  const filePath = join(piPkg, patch.file);
   let content;
 
   try {
     content = getContent(filePath);
   } catch {
     console.error("  ✗ [" + patch._source + "/" + patch.id + "] FILE MISSING: " + patch.file);
-    if (resolved.file !== patch.file) console.error("    resolved candidate: " + resolved.file);
     console.error("    intent: " + patch.intent);
     errors++;
     continue;

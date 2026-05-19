@@ -18,10 +18,8 @@ if (bin) {
   } catch {}
   const binDir = path.dirname(bin);
   candidates.push(path.resolve(binDir, "../lib/node_modules/@earendil-works/pi-coding-agent"));
-  candidates.push(path.resolve(binDir, "../lib/node_modules/@mariozechner/pi-coding-agent"));
 }
 candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
-candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@mariozechner/pi-coding-agent"));
 for (const candidate of candidates) {
   if (fs.existsSync(path.join(candidate, "package.json"))) {
     console.log(candidate);
@@ -35,15 +33,9 @@ NODE
   exit 1
 fi
 
-if [ -d "$PI_PKG/node_modules/@earendil-works/pi-tui" ]; then
-  PI_TUI="$PI_PKG/node_modules/@earendil-works/pi-tui"
-  PI_AI="$PI_PKG/node_modules/@earendil-works/pi-ai"
-  PI_AGENT_CORE="$PI_PKG/node_modules/@earendil-works/pi-agent-core"
-else
-  PI_TUI="$PI_PKG/node_modules/@mariozechner/pi-tui"
-  PI_AI="$PI_PKG/node_modules/@mariozechner/pi-ai"
-  PI_AGENT_CORE="$PI_PKG/node_modules/@mariozechner/pi-agent-core"
-fi
+PI_TUI="$PI_PKG/node_modules/@earendil-works/pi-tui"
+PI_AI="$PI_PKG/node_modules/@earendil-works/pi-ai"
+PI_AGENT_CORE="$PI_PKG/node_modules/@earendil-works/pi-agent-core"
 
 echo "→ Running pi-patches verification tests..."
 

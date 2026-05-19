@@ -19,7 +19,6 @@ This repo currently owns local patches for:
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
 - **terminal LaTeX math Unicode rendering** so `$...$`, `$$...$$`, `\\(...\\)`, and `\\[...\\]` display as readable Unicode instead of raw TeX
 - **`/reload` current-session refresh** so reload reopens the session file it was invoked from before rebuilding chat
-- **scope-migration-aware patching** that supports Pi's move from `@mariozechner/*` to `@earendil-works/*` in upstream `0.74.0`
 - **conflict-pruned patch manifests** that stay compatible with upstream `0.67.6+`, where base markdown OSC 8 links and wrap tracking are now built in
 
 It also acts as a patch orchestrator for sibling repos. Right now it loads:
