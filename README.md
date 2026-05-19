@@ -2,7 +2,18 @@
 
 Small install-time patches for [pi](https://github.com/earendil-works/pi-mono).
 
-Today this repo owns local patches for:
+## Upstream track record
+
+Six patches shipped from this repo on **2026-04-07** were later absorbed into upstream `pi-mono`:
+
+- patches **001–005** (OSC 8 markdown link rendering + hyperlink wrap tracking) → absorbed in **`pi-mono 0.67.6`** on **2026-04-16**, 9 days after they shipped here.
+- patch **006** (OSC 8 update-notification banner) → absorbed in **`pi-mono 0.74.1`** on **2026-05-17**, 40 days after it shipped here.
+
+See [`HISTORY.md`](./HISTORY.md) for the full lifecycle of every patch — active, retired, migrated to siblings — with dated add/remove commits.
+
+## What ships today
+
+This repo currently owns local patches for:
 - **extra OSC 8 hyperlink coverage** for gaps not yet upstreamed (inline code spans and URL-only code-block lines)
 - **bash timeout prompt clarity** so models see that the bash tool's `timeout` argument is in seconds, not milliseconds
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
@@ -127,7 +138,7 @@ lefthook install
 | external (`pi-autocompact`) | compaction code via `../pi-autocompact/patches/pi-patches.json` | Slide the native compaction cut point so summarizer requests fit the model context window |
 | external (`pi-sync` 050, 060–062) | `agent-session.js`, extension runner, interactive mode, and types via `../pi-sync/patches/pi-patches.json` | Refresh agent state after input hooks and expose `replayAgentEvent` so synced terminals can replay native UI events |
 
-> Upstream `0.67.6` absorbed former patches **001–005** by adding native markdown OSC 8 link rendering and hyperlink wrap tracking in Pi TUI (now published as `@earendil-works/pi-tui`). Upstream `0.74.1` absorbed former patch **006** by rendering the interactive update notification changelog as an OSC 8 hyperlink. See [`HISTORY.md`](./HISTORY.md) for the full lifecycle of every patch this repo has ever owned, including the 010–019 series that migrated to [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code).
+See the "Upstream track record" section above for patches that have been absorbed into `pi-mono`. [`HISTORY.md`](./HISTORY.md) has the full lifecycle of every patch this repo has ever owned, including the 010–019 series that migrated to [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code).
 
 ## How it works
 
