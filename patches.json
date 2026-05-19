@@ -129,12 +129,12 @@
       },
       {
         "type": "consumer-repo",
-        "repo": "pi-lane",
+        "repo": "pi-sync",
         "paths": [
-          "src/extension.ts",
-          "test/pi-lane.test.mjs"
+          "index.ts",
+          "test/native-live-sync.test.mjs"
         ],
-        "reason": "pi-lane can expose the core bug by moving the session leaf during message_end hooks, but the toolResult/toolCall persistence invariant is generic Pi behavior."
+        "reason": "pi-sync can expose the core bug by moving the session leaf during synced tree navigation and host-owned turns, but the toolResult/toolCall persistence invariant is generic Pi behavior."
       },
       {
         "type": "consumer-repo",

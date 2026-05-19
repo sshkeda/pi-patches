@@ -9,7 +9,7 @@ Six patches shipped from this repo on **2026-04-07** were later absorbed into up
 - patches **001–005** (OSC 8 markdown link rendering + hyperlink wrap tracking) → absorbed in **`pi-mono 0.67.6`** on **2026-04-16**, 9 days after they shipped here.
 - patch **006** (OSC 8 update-notification banner) → absorbed in **`pi-mono 0.74.1`** on **2026-05-17**, 40 days after it shipped here.
 
-See [`HISTORY.md`](./HISTORY.md) for the full lifecycle of every patch — active, retired, migrated to siblings — with dated add/remove commits.
+The full per-patch history — active, retired, migrated — is in the [Patch history](#patch-history) section below.
 
 ## What ships today
 
@@ -121,24 +121,64 @@ brew install lefthook
 lefthook install
 ```
 
-## What it patches
+## Patch history
 
-| Patch | File | What |
-|-------|------|------|
-| 007 | `markdown.js` | Wrap URLs in inline code spans (`` `https://...` ``) |
-| 008–009 | `markdown.js` | Wrap URL-only lines in code blocks (highlighted + plain) |
-| 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds |
-| 021–022 | `tools/bash.js` | Wrap bare URLs in rendered bash tool output with OSC 8 hyperlinks |
-| 031–033 | `markdown.js` | Convert common LaTeX math delimiters through `unicodeit` into terminal-friendly Unicode |
-| 030 | `agent-session.js` | Reopen the current session file during `/reload` before rebuilding chat |
-| external (`pi-sessions` 034–037) | `session-manager.js` and `main.js` via `../pi-sessions/patches/pi-patches.json` | Generate short session IDs and resolve bare `--session <id>` through `~/.pi-sessions/<id>.jsonl` aliases |
-| external (`pi-read` 016–018) | `openai-completions.js` via `../pi-read/patches/pi-patches.json` | Route OpenRouter audio/video/PDF through native `input_audio` / `video_url` / `file` chat-completions content blocks |
-| external (`pi-claude-code` 010–020) | extension runtime/types and `pi-agent-core` via `../pi-claude-code/patches/pi-patches.json` | Expose extension tool lookup/runtime helpers, allow concrete cached tool-call results, and resolve provider-bridge display-only/pre-computed tool results before missing-tool fallback |
-| external (`pi-script` 040–041) | `agent-session.js` and extension runner via `../pi-script/patches/pi-patches.json` | Preserve full built-in + extension tool definition lookup for Pi Script's single-tool SDK mode |
-| external (`pi-autocompact`) | compaction code via `../pi-autocompact/patches/pi-patches.json` | Slide the native compaction cut point so summarizer requests fit the model context window |
-| external (`pi-sync` 050, 060–062) | `agent-session.js`, extension runner, interactive mode, and types via `../pi-sync/patches/pi-patches.json` | Refresh agent state after input hooks and expose `replayAgentEvent` so synced terminals can replay native UI events |
+Chronological record of every patch this repo has ever owned — active, retired, and migrated. Each row links to the commit that added or removed the patch so churn stays auditable when reading old commits or chasing upstream behaviour changes.
 
-See the "Upstream track record" section above for patches that have been absorbed into `pi-mono`. [`HISTORY.md`](./HISTORY.md) has the full lifecycle of every patch this repo has ever owned, including the 010–019 series that migrated to [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code).
+### Active patches
+
+These live in [`patches.json`](./patches.json) today and are validated by `bash check.sh`.
+
+| ID | File | What it does | Added | Commit |
+|---|---|---|---|---|
+| 007 | `markdown.js` | Wrap URLs inside inline code spans (`` `https://...` ``) | 2026-04-07 | [`76441ee`](https://github.com/sshkeda/pi-patches/commit/76441ee) |
+| 008 | `markdown.js` | Wrap URL-only highlighted code-block lines | 2026-04-07 (re-added same day) | [`a69d390`](https://github.com/sshkeda/pi-patches/commit/a69d390) |
+| 009 | `markdown.js` | Wrap URL-only plain code-block lines | 2026-04-07 (re-added same day) | [`a69d390`](https://github.com/sshkeda/pi-patches/commit/a69d390) |
+| 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds | 2026-04-28 | [`312e1f1`](https://github.com/sshkeda/pi-patches/commit/312e1f1) |
+| 021 | `tools/bash.js` | `linkifyBareUrls` helper | 2026-05-01 | [`0fbb2a8`](https://github.com/sshkeda/pi-patches/commit/0fbb2a8) |
+| 022 | `tools/bash.js` | Apply linkify in rendered bash tool output | 2026-05-01 | [`0fbb2a8`](https://github.com/sshkeda/pi-patches/commit/0fbb2a8) |
+| 030 | `agent-session.js` | `/reload` reopens current session file before rebuilding chat | 2026-05-05 | [`22affb8`](https://github.com/sshkeda/pi-patches/commit/22affb8) |
+| 031 | `markdown.js` | LaTeX-to-Unicode preprocessor helper | 2026-05-10 | [`285a19d`](https://github.com/sshkeda/pi-patches/commit/285a19d) |
+| 032 | `markdown.js` | LaTeX-to-Unicode render via `unicodeit` | 2026-05-10 | [`285a19d`](https://github.com/sshkeda/pi-patches/commit/285a19d) |
+| 033 | `markdown.js` | LaTeX-to-Unicode call site | 2026-05-10 | [`285a19d`](https://github.com/sshkeda/pi-patches/commit/285a19d) |
+| 051 | `agent-session.js` | Parent tool-results to matching tool-call before persist | 2026-05-17 | [`b70591a`](https://github.com/sshkeda/pi-patches/commit/b70591a) |
+
+### Retired — absorbed by upstream `pi-mono`
+
+| IDs | What | Removed | Upstream version | Removal commit |
+|---|---|---|---|---|
+| 001–005 | OSC 8 markdown link rendering + hyperlink wrap tracking in Pi TUI | 2026-04-16 | `0.67.6` (now `@earendil-works/pi-tui`) | [`5d433ba`](https://github.com/sshkeda/pi-patches/commit/5d433ba) |
+| 006 | OSC 8 update banner in interactive notification | 2026-05-17 | `0.74.1` | [`b70591a`](https://github.com/sshkeda/pi-patches/commit/b70591a) |
+
+These patches were added in the [initial commit `76441ee`](https://github.com/sshkeda/pi-patches/commit/76441ee) and lived in `patches.json` until upstream Pi shipped equivalent behaviour. When that happens, the patch is deleted rather than carried as dead code.
+
+### Retired — migrated to sibling repos
+
+| IDs | What | Removed | Migrated to | Removal commit |
+|---|---|---|---|---|
+| 010–019 | extension runtime / tool lookup hooks (provider-bridge support) | 2026-05-03 | [`pi-claude-code/patches/pi-patches.json`](https://github.com/sshkeda/pi-claude-code/blob/main/patches/pi-patches.json) | [`6ec028b`](https://github.com/sshkeda/pi-patches/commit/6ec028b) |
+
+The 010–019 series was originally added in [`f60cc09`](https://github.com/sshkeda/pi-patches/commit/f60cc09) (010–015), [`32e04ee`](https://github.com/sshkeda/pi-patches/commit/32e04ee) (016–018), and [`a41f6d9`](https://github.com/sshkeda/pi-patches/commit/a41f6d9) (019). They were scoped specifically to the pi-claude-code provider bridge, so ownership moved to the [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) repo where the provider lives. pi-patches still loads them at apply time via `sources.json`.
+
+### Briefly removed and restored
+
+| IDs | What happened |
+|---|---|
+| 008–009 | Removed 2026-04-07 in [`1f31e69`](https://github.com/sshkeda/pi-patches/commit/1f31e69) ("Remove code block URL patches, add re-apply note"), then immediately reverted in [`a69d390`](https://github.com/sshkeda/pi-patches/commit/a69d390) the same day. Still active today. |
+
+### Sibling-owned patches loaded at apply time
+
+These never lived in `patches.json` directly; pi-patches loads them via [`sources.json`](./sources.json). Listed here so the full live patch set is in one place.
+
+| Sibling repo | What | Manifest |
+|---|---|---|
+| [`pi-read`](https://github.com/sshkeda/pi-read) | OpenRouter native `input_audio` / `video_url` / `file` routing for multimodal Gemini reads | `../pi-read/patches/pi-patches.json` |
+| [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) | Extension runtime tool lookup, short-circuit results, provider-bridge display-only handling | `../pi-claude-code/patches/pi-patches.json` |
+| [`pi-script`](https://github.com/sshkeda/pi-script) | AgentSession-backed full tool-definition lookup for single-tool SDK mode | `../pi-script/patches/pi-patches.json` |
+| [`pi-lane`](https://github.com/sshkeda/pi-lane) | Agent state refresh after input hooks for lane/session branching | `../pi-lane/patches/pi-patches.json` |
+| [`pi-autocompact`](https://github.com/sshkeda/pi-autocompact) | Slide native compaction cut point so summarizer fits the model context window | `../pi-autocompact/patches/pi-patches.json` |
+| [`pi-sessions`](https://github.com/sshkeda/pi-sessions) | Short base64url session IDs and bare `--session <id>` resolution | `../pi-sessions/patches/pi-patches.json` |
+| [`pi-sync`](https://github.com/sshkeda/pi-sync) | `replayAgentEvent` for synced terminals replaying native UI events | `../pi-sync/patches/pi-patches.json` |
 
 ## How it works
 
