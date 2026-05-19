@@ -212,7 +212,7 @@
     "file": "node_modules/@earendil-works/pi-tui/dist/components/markdown.js",
     "intent": "Run Markdown input through the LaTeX-to-Unicode preprocessor before marked lexing, so math delimiters render as readable terminal Unicode instead of raw TeX.",
     "find": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\n",
-    "replace": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\nconst __piPatchesRequire = createRequire(import.meta.url);\nlet __unicodeitReplace = null;\ntry {\n    const unicodeit = __piPatchesRequire(\"unicodeit\");\n    __unicodeitReplace = unicodeit.replace || unicodeit.default?.replace || null;\n}\ncatch { }\nfunction replaceSimpleLatexTextMacros(math) {\n    let previous;\n    let current = math;\n    do {\n        previous = current;\n        current = current\n            .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, \"$1\")\n            .replace(/\\\\frac\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}/g, \"($1)/($2)\");\n    } while (current !== previous);\n    return current;\n}\nfunction fallbackLatexToUnicode(math) {\n    return math\n        .replace(/\\\\alpha/g, \"α\").replace(/\\\\beta/g, \"β\").replace(/\\\\gamma/g, \"γ\").replace(/\\\\delta/g, \"δ\")\n        .replace(/\\\\theta/g, \"θ\").replace(/\\\\lambda/g, \"λ\").replace(/\\\\mu/g, \"μ\").replace(/\\\\pi/g, \"π\")\n        .replace(/\\\\sigma/g, \"σ\").replace(/\\\\Sigma/g, \"Σ\").replace(/\\\\infty/g, \"∞\")\n        .replace(/\\\\sim/g, \"∼\").replace(/\\\\mid/g, \"∣\").replace(/\\\\leq/g, \"≤\").replace(/\\\\geq/g, \"≥\")\n        .replace(/\\\\neq/g, \"≠\").replace(/\\\\times/g, \"×\").replace(/\\\\cdot/g, \"·\")\n        .replace(/\\\\in/g, \"∈\").replace(/\\\\notin/g, \"∉\").replace(/\\\\to/g, \"→\");\n}\nfunction renderLatexMathToUnicode(math) {\n    const cleaned = replaceSimpleLatexTextMacros(math).replace(/\\s+/g, \" \").trim();\n    if (!cleaned) return \"\";\n    try {\n        if (__unicodeitReplace) return __unicodeitReplace(cleaned);\n    }\n    catch { }\n    return fallbackLatexToUnicode(cleaned);\n}\nfunction renderLatexMathInMarkdown(text) {\n    const protectedSegments = [];\n    const protect = (match) => {\n        const marker = `\\u0000PI_CODE_${protectedSegments.length}\\u0000`;\n        protectedSegments.push(match);\n        return marker;\n    };\n    let output = text.replace(/```[\\s\\S]*?```|`[^`\\n]*`/g, protect);\n    output = output\n        .replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\\\\\(([\\s\\S]*?)\\\\\\)/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/(^|[^\\\\$])\\$(?!\\$)([^$\\n]+?)(?<!\\\\)\\$/g, (_match, prefix, math) => prefix + renderLatexMathToUnicode(math));\n    return output.replace(/\\u0000PI_CODE_(\\d+)\\u0000/g, (_match, index) => protectedSegments[Number(index)] ?? _match);\n}\n",
+    "replace": "markdownParser.setOptions({\n    tokenizer: new StrictStrikethroughTokenizer(),\n});\nconst __piPatchesRequire = createRequire(import.meta.url);\nlet __unicodeitReplace = null;\ntry {\n    const unicodeit = __piPatchesRequire(\"unicodeit\");\n    __unicodeitReplace = unicodeit.replace || unicodeit.default?.replace || null;\n}\ncatch { }\nfunction replaceSimpleLatexTextMacros(math) {\n    let previous;\n    let current = math;\n    do {\n        previous = current;\n        current = current\n            .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, \"$1\")\n            .replace(/\\\\frac\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}/g, \"($1)/($2)\");\n    } while (current !== previous);\n    return current;\n}\nfunction fallbackLatexToUnicode(math) {\n    return math\n        .replace(/\\\\alpha/g, \"\u03b1\").replace(/\\\\beta/g, \"\u03b2\").replace(/\\\\gamma/g, \"\u03b3\").replace(/\\\\delta/g, \"\u03b4\")\n        .replace(/\\\\theta/g, \"\u03b8\").replace(/\\\\lambda/g, \"\u03bb\").replace(/\\\\mu/g, \"\u03bc\").replace(/\\\\pi/g, \"\u03c0\")\n        .replace(/\\\\sigma/g, \"\u03c3\").replace(/\\\\Sigma/g, \"\u03a3\").replace(/\\\\infty/g, \"\u221e\")\n        .replace(/\\\\sim/g, \"\u223c\").replace(/\\\\mid/g, \"\u2223\").replace(/\\\\leq/g, \"\u2264\").replace(/\\\\geq/g, \"\u2265\")\n        .replace(/\\\\neq/g, \"\u2260\").replace(/\\\\times/g, \"\u00d7\").replace(/\\\\cdot/g, \"\u00b7\")\n        .replace(/\\\\in/g, \"\u2208\").replace(/\\\\notin/g, \"\u2209\").replace(/\\\\to/g, \"\u2192\");\n}\nfunction renderLatexMathToUnicode(math) {\n    const cleaned = replaceSimpleLatexTextMacros(math).replace(/\\s+/g, \" \").trim();\n    if (!cleaned) return \"\";\n    try {\n        if (__unicodeitReplace) return __unicodeitReplace(cleaned);\n    }\n    catch { }\n    return fallbackLatexToUnicode(cleaned);\n}\nfunction renderLatexMathInMarkdown(text) {\n    const protectedSegments = [];\n    const protect = (match) => {\n        const marker = `\\u0000PI_CODE_${protectedSegments.length}\\u0000`;\n        protectedSegments.push(match);\n        return marker;\n    };\n    let output = text.replace(/```[\\s\\S]*?```|`[^`\\n]*`/g, protect);\n    output = output\n        .replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/\\\\\\(([\\s\\S]*?)\\\\\\)/g, (_match, math) => renderLatexMathToUnicode(math))\n        .replace(/(^|[^\\\\$])\\$(?!\\$)([^$\\n]+?)(?<!\\\\)\\$/g, (_match, prefix, math) => prefix + renderLatexMathToUnicode(math));\n    return output.replace(/\\u0000PI_CODE_(\\d+)\\u0000/g, (_match, index) => protectedSegments[Number(index)] ?? _match);\n}\n",
     "verify": "function renderLatexMathInMarkdown(text)",
     "occurrences": 1,
     "references": [
@@ -244,6 +244,278 @@
       {
         "type": "memory-note",
         "reason": "Pi terminal markdown showed raw LaTeX math (e.g. Beta-Binomial equations) in chat; use unicodeit as a lightweight robust text renderer before considering image-based MathJax/KaTeX."
+      }
+    ]
+  },
+  {
+    "id": "100-autocompact-summary-budget-helpers",
+    "file": "dist/core/compaction/compaction.js",
+    "intent": "Add helpers that build and estimate native compaction summary prompts so compaction can choose a budget-safe summarization prefix without changing the summarizer prompt template.",
+    "find": "export async function generateSummary(currentMessages, model, reserveTokens, apiKey, headers, signal, customInstructions, previousSummary, thinkingLevel, streamFn) {\n    const maxTokens = Math.min(Math.floor(0.8 * reserveTokens), model.maxTokens > 0 ? model.maxTokens : Number.POSITIVE_INFINITY);\n    // Use update prompt if we have a previous summary, otherwise initial prompt\n    let basePrompt = previousSummary ? UPDATE_SUMMARIZATION_PROMPT : SUMMARIZATION_PROMPT;\n    if (customInstructions) {\n        basePrompt = `${basePrompt}\\n\\nAdditional focus: ${customInstructions}`;\n    }\n    // Serialize conversation to text so model doesn't try to continue it\n    // Convert to LLM messages first (handles custom types like bashExecution, custom, etc.)\n    const llmMessages = convertToLlm(currentMessages);\n    const conversationText = serializeConversation(llmMessages);\n    // Build the prompt with conversation wrapped in tags\n    let promptText = `<conversation>\\n${conversationText}\\n</conversation>\\n\\n`;\n    if (previousSummary) {\n        promptText += `<previous-summary>\\n${previousSummary}\\n</previous-summary>\\n\\n`;\n    }\n    promptText += basePrompt;\n    const summarizationMessages = [\n        {\n            role: \"user\",\n            content: [{ type: \"text\", text: promptText }],\n            timestamp: Date.now(),\n        },\n    ];\n    const completionOptions = createSummarizationOptions(model, maxTokens, apiKey, headers, signal, thinkingLevel);\n    const response = await completeSummarization(model, { systemPrompt: SUMMARIZATION_SYSTEM_PROMPT, messages: summarizationMessages }, completionOptions, streamFn);\n    if (response.stopReason === \"error\") {\n        throw new Error(`Summarization failed: ${response.errorMessage || \"Unknown error\"}`);\n    }\n    const textContent = response.content\n        .filter((c) => c.type === \"text\")\n        .map((c) => c.text)\n        .join(\"\\n\");\n    return textContent;\n}\n",
+    "replace": "function buildSummaryPromptText(currentMessages, customInstructions, previousSummary) {\n    // Use update prompt if we have a previous summary, otherwise initial prompt\n    let basePrompt = previousSummary ? UPDATE_SUMMARIZATION_PROMPT : SUMMARIZATION_PROMPT;\n    if (customInstructions) {\n        basePrompt = `${basePrompt}\\n\\nAdditional focus: ${customInstructions}`;\n    }\n    // Serialize conversation to text so model doesn't try to continue it\n    // Convert to LLM messages first (handles custom types like bashExecution, custom, etc.)\n    const llmMessages = convertToLlm(currentMessages);\n    const conversationText = serializeConversation(llmMessages);\n    // Build the prompt with conversation wrapped in tags\n    let promptText = `<conversation>\\n${conversationText}\\n</conversation>\\n\\n`;\n    if (previousSummary) {\n        promptText += `<previous-summary>\\n${previousSummary}\\n</previous-summary>\\n\\n`;\n    }\n    promptText += basePrompt;\n    return promptText;\n}\nfunction estimateTextTokens(text) {\n    return Math.ceil(text.length / 4);\n}\nfunction estimateSummaryPromptTokens(currentMessages, customInstructions, previousSummary) {\n    return estimateTextTokens(`${SUMMARIZATION_SYSTEM_PROMPT}\\n${buildSummaryPromptText(currentMessages, customInstructions, previousSummary)}`);\n}\nfunction findLargestSummarizablePrefixLength(messages, model, reserveTokens, customInstructions, previousSummary) {\n    const inputBudget = Math.max(0, (model.contextWindow || 128000) - reserveTokens);\n    if (estimateSummaryPromptTokens(messages, customInstructions, previousSummary) <= inputBudget) {\n        return messages.length;\n    }\n    let lo = 0;\n    let hi = messages.length;\n    while (lo < hi) {\n        const mid = Math.ceil((lo + hi) / 2);\n        if (estimateSummaryPromptTokens(messages.slice(0, mid), customInstructions, previousSummary) <= inputBudget) {\n            lo = mid;\n        }\n        else {\n            hi = mid - 1;\n        }\n    }\n    return lo;\n}\nexport async function generateSummary(currentMessages, model, reserveTokens, apiKey, headers, signal, customInstructions, previousSummary, thinkingLevel, streamFn) {\n    const maxTokens = Math.min(Math.floor(0.8 * reserveTokens), model.maxTokens > 0 ? model.maxTokens : Number.POSITIVE_INFINITY);\n    const promptText = buildSummaryPromptText(currentMessages, customInstructions, previousSummary);\n    const summarizationMessages = [\n        {\n            role: \"user\",\n            content: [{ type: \"text\", text: promptText }],\n            timestamp: Date.now(),\n        },\n    ];\n    const completionOptions = createSummarizationOptions(model, maxTokens, apiKey, headers, signal, thinkingLevel);\n    const response = await completeSummarization(model, { systemPrompt: SUMMARIZATION_SYSTEM_PROMPT, messages: summarizationMessages }, completionOptions, streamFn);\n    if (response.stopReason === \"error\") {\n        throw new Error(`Summarization failed: ${response.errorMessage || \"Unknown error\"}`);\n    }\n    const textContent = response.content\n        .filter((c) => c.type === \"text\")\n        .map((c) => c.text)\n        .join(\"\\n\");\n    return textContent;\n}\n",
+    "verify": "function findLargestSummarizablePrefixLength(messages, model, reserveTokens, customInstructions, previousSummary)",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/compaction/compaction.js"
+      }
+    ]
+  },
+  {
+    "id": "101-autocompact-track-summary-entry-ids",
+    "file": "dist/core/compaction/compaction.js",
+    "intent": "Track session entry IDs alongside messagesToSummarize so a budget-limited compaction can slide firstKeptEntryId to the first unsummarized raw entry.",
+    "find": "    // Messages to summarize (will be discarded after summary)\n    const messagesToSummarize = [];\n    for (let i = boundaryStart; i < historyEnd; i++) {\n        const msg = getMessageFromEntryForCompaction(pathEntries[i]);\n        if (msg)\n            messagesToSummarize.push(msg);\n    }\n    // Messages for turn prefix summary (if splitting a turn)\n    const turnPrefixMessages = [];\n    if (cutPoint.isSplitTurn) {\n        for (let i = cutPoint.turnStartIndex; i < cutPoint.firstKeptEntryIndex; i++) {\n            const msg = getMessageFromEntryForCompaction(pathEntries[i]);\n            if (msg)\n                turnPrefixMessages.push(msg);\n        }\n    }\n    // Extract file operations from messages and previous compaction\n    const fileOps = extractFileOperations(messagesToSummarize, pathEntries, prevCompactionIndex);\n    // Also extract file ops from turn prefix if splitting\n    if (cutPoint.isSplitTurn) {\n        for (const msg of turnPrefixMessages) {\n            extractFileOpsFromMessage(msg, fileOps);\n        }\n    }\n    return {\n        firstKeptEntryId,\n        messagesToSummarize,\n        turnPrefixMessages,\n        isSplitTurn: cutPoint.isSplitTurn,\n        tokensBefore,\n        previousSummary,\n        fileOps,\n        settings,\n    };\n}\n",
+    "replace": "    // Messages to summarize (will be discarded after summary)\n    const messagesToSummarize = [];\n    const messagesToSummarizeEntryIds = [];\n    for (let i = boundaryStart; i < historyEnd; i++) {\n        const msg = getMessageFromEntryForCompaction(pathEntries[i]);\n        if (msg) {\n            messagesToSummarize.push(msg);\n            messagesToSummarizeEntryIds.push(pathEntries[i].id);\n        }\n    }\n    // Messages for turn prefix summary (if splitting a turn)\n    const turnPrefixMessages = [];\n    if (cutPoint.isSplitTurn) {\n        for (let i = cutPoint.turnStartIndex; i < cutPoint.firstKeptEntryIndex; i++) {\n            const msg = getMessageFromEntryForCompaction(pathEntries[i]);\n            if (msg)\n                turnPrefixMessages.push(msg);\n        }\n    }\n    // Extract file operations from messages and previous compaction\n    const fileOps = extractFileOperations(messagesToSummarize, pathEntries, prevCompactionIndex);\n    // Also extract file ops from turn prefix if splitting\n    if (cutPoint.isSplitTurn) {\n        for (const msg of turnPrefixMessages) {\n            extractFileOpsFromMessage(msg, fileOps);\n        }\n    }\n    return {\n        firstKeptEntryId,\n        messagesToSummarize,\n        messagesToSummarizeEntryIds,\n        turnPrefixMessages,\n        isSplitTurn: cutPoint.isSplitTurn,\n        tokensBefore,\n        previousSummary,\n        fileOps,\n        settings,\n    };\n}\n",
+    "verify": "messagesToSummarizeEntryIds.push(pathEntries[i].id)",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/compaction/compaction.js"
+      }
+    ]
+  },
+  {
+    "id": "102-autocompact-slide-cut-point",
+    "file": "dist/core/compaction/compaction.js",
+    "intent": "When native messagesToSummarize would overflow the summarizer input budget, summarize the largest chronological prefix that fits and move firstKeptEntryId earlier so the remaining messages stay raw.",
+    "find": "export async function compact(preparation, model, apiKey, headers, customInstructions, signal, thinkingLevel, streamFn) {\n    const { firstKeptEntryId, messagesToSummarize, turnPrefixMessages, isSplitTurn, tokensBefore, previousSummary, fileOps, settings, } = preparation;\n    // Generate summaries (can be parallel if both needed) and merge into one\n    let summary;\n    if (isSplitTurn && turnPrefixMessages.length > 0) {\n        // Generate both summaries in parallel\n        const [historyResult, turnPrefixResult] = await Promise.all([\n            messagesToSummarize.length > 0\n                ? generateSummary(messagesToSummarize, model, settings.reserveTokens, apiKey, headers, signal, customInstructions, previousSummary, thinkingLevel, streamFn)\n                : Promise.resolve(\"No prior history.\"),\n            generateTurnPrefixSummary(turnPrefixMessages, model, settings.reserveTokens, apiKey, headers, signal, thinkingLevel, streamFn),\n        ]);\n        // Merge into single summary\n        summary = `${historyResult}\\n\\n---\\n\\n**Turn Context (split turn):**\\n\\n${turnPrefixResult}`;\n    }\n    else {\n        // Just generate history summary\n        summary = await generateSummary(messagesToSummarize, model, settings.reserveTokens, apiKey, headers, signal, customInstructions, previousSummary, thinkingLevel, streamFn);\n    }\n    // Compute file lists and append to summary\n    const { readFiles, modifiedFiles } = computeFileLists(fileOps);\n    summary += formatFileOperations(readFiles, modifiedFiles);\n    if (!firstKeptEntryId) {\n        throw new Error(\"First kept entry has no UUID - session may need migration\");\n    }\n    return {\n        summary,\n        firstKeptEntryId,\n        tokensBefore,\n        details: { readFiles, modifiedFiles },\n    };\n}\n",
+    "replace": "export async function compact(preparation, model, apiKey, headers, customInstructions, signal, thinkingLevel, streamFn) {\n    let { firstKeptEntryId } = preparation;\n    const { messagesToSummarize, messagesToSummarizeEntryIds, turnPrefixMessages, isSplitTurn, tokensBefore, previousSummary, fileOps, settings, } = preparation;\n    const historyPrefixLength = findLargestSummarizablePrefixLength(messagesToSummarize, model, settings.reserveTokens, customInstructions, previousSummary);\n    if (messagesToSummarize.length > 0 && historyPrefixLength === 0) {\n        throw new Error(\"Compaction prompt is too large to fit even the first message. Try reducing context manually or switching to a larger-context model.\");\n    }\n    if (messagesToSummarize.length === 0 && estimateSummaryPromptTokens([], customInstructions, previousSummary) > Math.max(0, (model.contextWindow || 128000) - settings.reserveTokens)) {\n        throw new Error(\"Compaction prompt is too large to fit. Try reducing context manually or switching to a larger-context model.\");\n    }\n    const boundedMessagesToSummarize = messagesToSummarize.slice(0, historyPrefixLength);\n    const boundedByHistory = historyPrefixLength < messagesToSummarize.length;\n    if (boundedByHistory) {\n        firstKeptEntryId = messagesToSummarizeEntryIds?.[historyPrefixLength] ?? firstKeptEntryId;\n    }\n    const effectiveIsSplitTurn = isSplitTurn && !boundedByHistory;\n    const effectiveTurnPrefixMessages = boundedByHistory ? [] : turnPrefixMessages;\n    // Generate summaries (can be parallel if both needed) and merge into one\n    let summary;\n    if (effectiveIsSplitTurn && effectiveTurnPrefixMessages.length > 0) {\n        // Generate both summaries in parallel\n        const [historyResult, turnPrefixResult] = await Promise.all([\n            boundedMessagesToSummarize.length > 0\n                ? generateSummary(boundedMessagesToSummarize, model, settings.reserveTokens, apiKey, headers, signal, customInstructions, previousSummary, thinkingLevel, streamFn)\n                : Promise.resolve(\"No prior history.\"),\n            generateTurnPrefixSummary(effectiveTurnPrefixMessages, model, settings.reserveTokens, apiKey, headers, signal, thinkingLevel, streamFn),\n        ]);\n        // Merge into single summary\n        summary = `${historyResult}\\n\\n---\\n\\n**Turn Context (split turn):**\\n\\n${turnPrefixResult}`;\n    }\n    else {\n        // Just generate history summary\n        summary = await generateSummary(boundedMessagesToSummarize, model, settings.reserveTokens, apiKey, headers, signal, customInstructions, previousSummary, thinkingLevel, streamFn);\n    }\n    // Compute file lists and append to summary\n    const { readFiles, modifiedFiles } = computeFileLists(fileOps);\n    summary += formatFileOperations(readFiles, modifiedFiles);\n    if (!firstKeptEntryId) {\n        throw new Error(\"First kept entry has no UUID - session may need migration\");\n    }\n    return {\n        summary,\n        firstKeptEntryId,\n        tokensBefore,\n        details: { readFiles, modifiedFiles },\n    };\n}\n",
+    "verify": "Compaction prompt is too large to fit even the first message",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/compaction/compaction.js"
+      }
+    ]
+  },
+  {
+    "id": "103-agent-core-forward-should-stop-option",
+    "file": "node_modules/@earendil-works/pi-agent-core/dist/agent.js",
+    "intent": "Allow AgentOptions.shouldStopAfterTurn to be stored on Agent so coding-agent can gracefully stop a tool-use loop before the next provider request when compaction is needed.",
+    "find": "        this.afterToolCall = options.afterToolCall;\n        this.prepareNextTurn = options.prepareNextTurn;",
+    "replace": "        this.afterToolCall = options.afterToolCall;\n        this.shouldStopAfterTurn = options.shouldStopAfterTurn;\n        this.prepareNextTurn = options.prepareNextTurn;",
+    "verify": "this.shouldStopAfterTurn = options.shouldStopAfterTurn;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-agent-core",
+        "path": "dist/agent.js"
+      }
+    ]
+  },
+  {
+    "id": "104-agent-core-pass-should-stop-loop-config",
+    "file": "node_modules/@earendil-works/pi-agent-core/dist/agent.js",
+    "intent": "Forward Agent.shouldStopAfterTurn into each low-level loop config so the loop can emit agent_end before starting another LLM call.",
+    "find": "            getSteeringMessages: async () => {\n                if (skipInitialSteeringPoll) {\n                    skipInitialSteeringPoll = false;\n                    return [];\n                }\n                return this.steeringQueue.drain();\n            },\n            getFollowUpMessages: async () => this.followUpQueue.drain(),\n        };",
+    "replace": "            shouldStopAfterTurn: this.shouldStopAfterTurn,\n            getSteeringMessages: async () => {\n                if (skipInitialSteeringPoll) {\n                    skipInitialSteeringPoll = false;\n                    return [];\n                }\n                return this.steeringQueue.drain();\n            },\n            getFollowUpMessages: async () => this.followUpQueue.drain(),\n        };",
+    "verify": "shouldStopAfterTurn: this.shouldStopAfterTurn,",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-agent-core",
+        "path": "dist/agent.js"
+      }
+    ]
+  },
+  {
+    "id": "105-agent-core-should-stop-types",
+    "file": "node_modules/@earendil-works/pi-agent-core/dist/agent.d.ts",
+    "intent": "Expose shouldStopAfterTurn on AgentOptions and Agent typings to match the runtime forwarding patch.",
+    "find": "    beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;\n    afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;\n    prepareNextTurn?: (signal?: AbortSignal) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;\n    steeringMode?: QueueMode;",
+    "replace": "    beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;\n    afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;\n    shouldStopAfterTurn?: (context: import(\"./types.js\").ShouldStopAfterTurnContext) => boolean | Promise<boolean>;\n    prepareNextTurn?: (signal?: AbortSignal) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;\n    steeringMode?: QueueMode;",
+    "verify": "shouldStopAfterTurn?: (context: import(\"./types.js\").ShouldStopAfterTurnContext) => boolean | Promise<boolean>;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-agent-core",
+        "path": "dist/agent.d.ts"
+      }
+    ]
+  },
+  {
+    "id": "106-agent-core-should-stop-agent-type-field",
+    "file": "node_modules/@earendil-works/pi-agent-core/dist/agent.d.ts",
+    "intent": "Expose the Agent.shouldStopAfterTurn instance field in typings to match runtime behavior.",
+    "find": "    beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;\n    afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;\n    prepareNextTurn?: (signal?: AbortSignal) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;\n    private activeRun?;",
+    "replace": "    beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;\n    afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;\n    shouldStopAfterTurn?: (context: import(\"./types.js\").ShouldStopAfterTurnContext) => boolean | Promise<boolean>;\n    prepareNextTurn?: (signal?: AbortSignal) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;\n    private activeRun?;",
+    "verify": "shouldStopAfterTurn?: (context: import(\"./types.js\").ShouldStopAfterTurnContext) => boolean | Promise<boolean>;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-agent-core",
+        "path": "dist/agent.d.ts"
+      }
+    ]
+  },
+  {
+    "id": "107-autocompact-store-threshold-continuation-hook",
+    "file": "dist/core/agent-session.js",
+    "intent": "Store an optional callback that marks threshold compactions caused by tool-use preflight as continuations that should resume automatically after compacting.",
+    "find": "    _sessionStartEvent;\n    _extensionUIContext;",
+    "replace": "    _sessionStartEvent;\n    _continueAfterThresholdCompaction;\n    _extensionUIContext;",
+    "verify": "_continueAfterThresholdCompaction;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/agent-session.js"
+      }
+    ]
+  },
+  {
+    "id": "108-autocompact-read-threshold-continuation-config",
+    "file": "dist/core/agent-session.js",
+    "intent": "Read the threshold-continuation callback from AgentSession config.",
+    "find": "        this._baseToolsOverride = config.baseToolsOverride;\n        this._sessionStartEvent = config.sessionStartEvent ?? { type: \"session_start\", reason: \"startup\" };",
+    "replace": "        this._baseToolsOverride = config.baseToolsOverride;\n        this._sessionStartEvent = config.sessionStartEvent ?? { type: \"session_start\", reason: \"startup\" };\n        this._continueAfterThresholdCompaction = config.continueAfterThresholdCompaction;",
+    "verify": "this._continueAfterThresholdCompaction = config.continueAfterThresholdCompaction;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/agent-session.js"
+      }
+    ]
+  },
+  {
+    "id": "109-autocompact-continue-after-tooluse-threshold-compaction",
+    "file": "dist/core/agent-session.js",
+    "intent": "When compaction was triggered by a preflight stop between tool-use turns, compact and then automatically continue instead of requiring another user prompt.",
+    "find": "        if (shouldCompact(contextTokens, contextWindow, settings)) {\n            await this._runAutoCompaction(\"threshold\", false);\n        }",
+    "replace": "        if (shouldCompact(contextTokens, contextWindow, settings)) {\n            const willRetry = this._continueAfterThresholdCompaction?.() === true;\n            await this._runAutoCompaction(\"threshold\", willRetry);\n        }",
+    "verify": "const willRetry = this._continueAfterThresholdCompaction?.() === true;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/agent-session.js"
+      }
+    ]
+  },
+  {
+    "id": "110-autocompact-threshold-continuation-types",
+    "file": "dist/core/agent-session.d.ts",
+    "intent": "Type the AgentSession config callback used to continue after preflight threshold compactions.",
+    "find": "    /** Mutable ref used by Agent to access the current ExtensionRunner */\n    extensionRunnerRef?: {\n        current?: ExtensionRunner;\n    };\n    /** Session start event metadata emitted when extensions bind to this runtime. */",
+    "replace": "    /** Mutable ref used by Agent to access the current ExtensionRunner */\n    extensionRunnerRef?: {\n        current?: ExtensionRunner;\n    };\n    /** Return true when a threshold compaction should resume the interrupted loop after compacting. */\n    continueAfterThresholdCompaction?: () => boolean;\n    /** Session start event metadata emitted when extensions bind to this runtime. */",
+    "verify": "continueAfterThresholdCompaction?: () => boolean;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/agent-session.d.ts"
+      }
+    ]
+  },
+  {
+    "id": "111-autocompact-threshold-continuation-private-type",
+    "file": "dist/core/agent-session.d.ts",
+    "intent": "Type the private AgentSession threshold-continuation callback field.",
+    "find": "    private _sessionStartEvent;\n    private _extensionUIContext?;",
+    "replace": "    private _sessionStartEvent;\n    private _continueAfterThresholdCompaction?;\n    private _extensionUIContext?;",
+    "verify": "private _continueAfterThresholdCompaction?;",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/agent-session.d.ts"
+      }
+    ]
+  },
+  {
+    "id": "112-sdk-import-compaction-threshold-helpers",
+    "file": "dist/core/sdk.js",
+    "intent": "Import compaction threshold helpers so the Agent can stop between tool-use turns before the next provider request would overflow.",
+    "find": "import { AuthStorage } from \"./auth-storage.js\";\nimport { DEFAULT_THINKING_LEVEL } from \"./defaults.js\";",
+    "replace": "import { AuthStorage } from \"./auth-storage.js\";\nimport { calculateContextTokens, shouldCompact } from \"./compaction/index.js\";\nimport { DEFAULT_THINKING_LEVEL } from \"./defaults.js\";",
+    "verify": "import { calculateContextTokens, shouldCompact } from \"./compaction/index.js\";",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/sdk.js"
+      }
+    ]
+  },
+  {
+    "id": "113-sdk-stop-between-tooluse-calls-for-compaction",
+    "file": "dist/core/sdk.js",
+    "intent": "Wire Agent.shouldStopAfterTurn so Pi stops after an over-threshold tool-use turn, lets AgentSession auto-compact, and then resumes the interrupted continuation.",
+    "find": "    const extensionRunnerRef = {};\n    agent = new Agent({",
+    "replace": "    const extensionRunnerRef = {};\n    let continueAfterThresholdCompaction = false;\n    const consumeContinueAfterThresholdCompaction = () => {\n        const shouldContinue = continueAfterThresholdCompaction;\n        continueAfterThresholdCompaction = false;\n        return shouldContinue;\n    };\n    agent = new Agent({",
+    "verify": "const consumeContinueAfterThresholdCompaction = () => {",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/sdk.js"
+      }
+    ]
+  },
+  {
+    "id": "114-sdk-agent-threshold-stop-callback",
+    "file": "dist/core/sdk.js",
+    "intent": "Detect over-threshold assistant tool-use turns before the agent loop asks the provider for another continuation.",
+    "find": "        transformContext: async (messages) => {\n            const runner = extensionRunnerRef.current;\n            if (!runner)\n                return messages;\n            return runner.emitContext(messages);\n        },\n        steeringMode: settingsManager.getSteeringMode(),",
+    "replace": "        transformContext: async (messages) => {\n            const runner = extensionRunnerRef.current;\n            if (!runner)\n                return messages;\n            return runner.emitContext(messages);\n        },\n        shouldStopAfterTurn: async ({ message, toolResults }) => {\n            if (toolResults.length === 0 || message.stopReason === \"error\" || message.stopReason === \"aborted\") {\n                return false;\n            }\n            const settings = settingsManager.getCompactionSettings();\n            if (!settings.enabled) {\n                return false;\n            }\n            const contextWindow = agent.state.model?.contextWindow ?? 0;\n            const contextTokens = calculateContextTokens(message.usage);\n            if (!shouldCompact(contextTokens, contextWindow, settings)) {\n                return false;\n            }\n            continueAfterThresholdCompaction = true;\n            return true;\n        },\n        steeringMode: settingsManager.getSteeringMode(),",
+    "verify": "shouldStopAfterTurn: async ({ message, toolResults }) => {",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/sdk.js"
+      }
+    ]
+  },
+  {
+    "id": "115-sdk-pass-threshold-continuation-to-session",
+    "file": "dist/core/sdk.js",
+    "intent": "Pass the preflight-compaction continuation callback into AgentSession.",
+    "find": "        extensionRunnerRef,\n        sessionStartEvent: options.sessionStartEvent,",
+    "replace": "        extensionRunnerRef,\n        continueAfterThresholdCompaction: consumeContinueAfterThresholdCompaction,\n        sessionStartEvent: options.sessionStartEvent,",
+    "verify": "continueAfterThresholdCompaction: consumeContinueAfterThresholdCompaction,",
+    "occurrences": 1,
+    "references": [
+      {
+        "type": "upstream-package",
+        "repo": "earendil-works/pi-mono",
+        "package": "@earendil-works/pi-coding-agent",
+        "path": "dist/core/sdk.js"
       }
     ]
   }

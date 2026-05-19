@@ -19,13 +19,13 @@ This repo currently owns local patches for:
 - **bash output URL linkification** so bare URLs in rendered bash tool output remain clickable/copyable across terminal wraps
 - **terminal LaTeX math Unicode rendering** so `$...$`, `$$...$$`, `\\(...\\)`, and `\\[...\\]` display as readable Unicode instead of raw TeX
 - **`/reload` current-session refresh** so reload reopens the session file it was invoked from before rebuilding chat
-- **conflict-pruned patch manifests** that stay compatible with upstream `0.67.6+`, where base markdown OSC 8 links and wrap tracking are now built in
+- **tool-result parenting** so tool-result messages persist below the assistant message that emitted their tool call, even when extension hooks branch the session leaf
+- **native compaction reliability** so the summarizer prompt fits the model context window even when `messagesToSummarize` would overflow, with threshold continuation between tool-use calls
 
 It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
 - **`../pi-claude-code/patches/pi-patches.json`** — exposes extension-runtime tool lookup hooks, supports extension tool-call short-circuit results, and lets provider bridges resolve display-only/pre-computed tool results directly
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
-- **`../pi-autocompact/patches/pi-patches.json`** — keeps native compaction but slides the summary cut point when needed so the compaction summarizer request fits the model context window
 - **`../pi-sync/patches/pi-patches.json`** — refreshes agent state after input hooks and exposes native UI event replay hooks for synced Pi terminals
 
 ## Usage
@@ -126,21 +126,53 @@ Chronological record of every patch this repo has ever owned — active, retired
 
 ### Active patches
 
-These live in [`patches.json`](./patches.json) today and are validated by `bash check.sh`.
+These live in [`patches.json`](./patches.json) today and are validated by `bash check.sh`. Grouped by feature.
+
+#### OSC 8 hyperlinks in markdown
 
 | ID | File | What it does | Added | Commit |
 |---|---|---|---|---|
 | 007 | `markdown.js` | Wrap URLs inside inline code spans (`` `https://...` ``) | 2026-04-07 | [`76441ee`](https://github.com/sshkeda/pi-patches/commit/76441ee) |
 | 008 | `markdown.js` | Wrap URL-only highlighted code-block lines | 2026-04-07 (re-added same day) | [`a69d390`](https://github.com/sshkeda/pi-patches/commit/a69d390) |
 | 009 | `markdown.js` | Wrap URL-only plain code-block lines | 2026-04-07 (re-added same day) | [`a69d390`](https://github.com/sshkeda/pi-patches/commit/a69d390) |
+
+#### Bash tool
+
+| ID | File | What it does | Added | Commit |
+|---|---|---|---|---|
 | 020 | `tools/bash.js` | Make the bash prompt snippet explicit that `timeout` is seconds (`timeout=120` for two minutes), not milliseconds | 2026-04-28 | [`312e1f1`](https://github.com/sshkeda/pi-patches/commit/312e1f1) |
 | 021 | `tools/bash.js` | `linkifyBareUrls` helper | 2026-05-01 | [`0fbb2a8`](https://github.com/sshkeda/pi-patches/commit/0fbb2a8) |
 | 022 | `tools/bash.js` | Apply linkify in rendered bash tool output | 2026-05-01 | [`0fbb2a8`](https://github.com/sshkeda/pi-patches/commit/0fbb2a8) |
+
+#### Session reload
+
+| ID | File | What it does | Added | Commit |
+|---|---|---|---|---|
 | 030 | `agent-session.js` | `/reload` reopens current session file before rebuilding chat | 2026-05-05 | [`22affb8`](https://github.com/sshkeda/pi-patches/commit/22affb8) |
+
+#### LaTeX math in markdown
+
+| ID | File | What it does | Added | Commit |
+|---|---|---|---|---|
 | 031 | `markdown.js` | LaTeX-to-Unicode preprocessor helper | 2026-05-10 | [`285a19d`](https://github.com/sshkeda/pi-patches/commit/285a19d) |
 | 032 | `markdown.js` | LaTeX-to-Unicode render via `unicodeit` | 2026-05-10 | [`285a19d`](https://github.com/sshkeda/pi-patches/commit/285a19d) |
 | 033 | `markdown.js` | LaTeX-to-Unicode call site | 2026-05-10 | [`285a19d`](https://github.com/sshkeda/pi-patches/commit/285a19d) |
+
+#### Tool-result parenting
+
+| ID | File | What it does | Added | Commit |
+|---|---|---|---|---|
 | 051 | `agent-session.js` | Parent tool-results to matching tool-call before persist | 2026-05-17 | [`b70591a`](https://github.com/sshkeda/pi-patches/commit/b70591a) |
+
+#### Native compaction reliability
+
+Originally a sibling [`pi-autocompact`](https://github.com/sshkeda/pi-autocompact) repo, [merged into pi-patches](https://github.com/sshkeda/pi-patches) on 2026-05-18. Keeps Pi's native compaction prompts intact but stops the summariser request from exceeding the model context window, and lets the agent stop between tool-use calls when compaction is needed.
+
+| IDs | File | What it does | Added | Commit |
+|---|---|---|---|---|
+| 100–102 | `dist/core/compaction/compaction.js` | Summary budget helpers, track per-message entry IDs, slide cut point so the summariser prompt always fits | 2026-05-11 | [`6591fa1`](https://github.com/sshkeda/pi-autocompact/commit/6591fa1) |
+| 103–106 | `pi-agent-core/dist/agent.js` + `.d.ts` | Forward `shouldStopAfterTurn` agent-loop option and typings | 2026-05-11 | [`df3a2cf`](https://github.com/sshkeda/pi-autocompact/commit/df3a2cf) |
+| 107–115 | `agent-session.js`, `sdk.js` | Threshold-continuation wiring so the agent stops between tool-use calls before context overflow | 2026-05-11 | [`df3a2cf`](https://github.com/sshkeda/pi-autocompact/commit/df3a2cf) |
 
 ### Retired — absorbed by upstream `pi-mono`
 
@@ -175,7 +207,6 @@ These never lived in `patches.json` directly; pi-patches loads them via [`source
 | [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) | Extension runtime tool lookup, short-circuit results, provider-bridge display-only handling | `../pi-claude-code/patches/pi-patches.json` |
 | [`pi-script`](https://github.com/sshkeda/pi-script) | AgentSession-backed full tool-definition lookup for single-tool SDK mode | `../pi-script/patches/pi-patches.json` |
 | [`pi-lane`](https://github.com/sshkeda/pi-lane) | Agent state refresh after input hooks for lane/session branching | `../pi-lane/patches/pi-patches.json` |
-| [`pi-autocompact`](https://github.com/sshkeda/pi-autocompact) | Slide native compaction cut point so summarizer fits the model context window | `../pi-autocompact/patches/pi-patches.json` |
 | [`pi-sessions`](https://github.com/sshkeda/pi-sessions) | Short base64url session IDs and bare `--session <id>` resolution | `../pi-sessions/patches/pi-patches.json` |
 | [`pi-sync`](https://github.com/sshkeda/pi-sync) | `replayAgentEvent` for synced terminals replaying native UI events | `../pi-sync/patches/pi-patches.json` |
 

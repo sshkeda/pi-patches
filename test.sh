@@ -513,7 +513,11 @@ if (failed > 0) process.exit(1);
 SCRIPT
 
 # ── External behavioral tests ───────────────────────────────────────────────
-if [ -x "$(dirname "$0")/../pi-autocompact/test.sh" ]; then
-  echo "→ Running pi-autocompact behavioral tests..."
-  bash "$(dirname "$0")/../pi-autocompact/test.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/../pi-mock" ]; then
+  echo "→ Running autocompact behavioral tests..."
+  (cd "$SCRIPT_DIR/../pi-mock" && node --test --test-force-exit \
+    "$SCRIPT_DIR/test-autocompact-edge-cases.mjs" \
+    test/test-autocompact-characterization.mjs \
+    test/test-autocompact-tooluse-preflight.mjs)
 fi
