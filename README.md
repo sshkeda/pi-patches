@@ -26,6 +26,7 @@ It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
 - **`../pi-sync/patches/pi-patches.json`** — refreshes agent state after input hooks and exposes native UI event replay hooks for synced Pi terminals
+- **`../pi-claude-code/patches/pi-patches.json`** — exposes extension tool lookup and provider-owned tool-result short-circuit hooks used by provider bridges
 
 ## Usage
 
@@ -170,7 +171,7 @@ Originally a sibling [`pi-autocompact`](https://github.com/sshkeda/pi-autocompac
 | IDs | File | What it does | Added | Commit |
 |---|---|---|---|---|
 | 100–102 | `dist/core/compaction/compaction.js` | Summary budget helpers, track per-message entry IDs, slide cut point so the summariser prompt always fits | 2026-05-11 | [`6591fa1`](https://github.com/sshkeda/pi-autocompact/commit/6591fa1) |
-| 103–106 | `pi-agent-core/dist/agent.js` + `.d.ts` | Forward `shouldStopAfterTurn` agent-loop option and typings | 2026-05-11 | [`df3a2cf`](https://github.com/sshkeda/pi-autocompact/commit/df3a2cf) |
+| 103–105 | `pi-agent-core/dist/agent.js` + `.d.ts` | Forward `shouldStopAfterTurn` agent-loop option and typings (`106` absorbed upstream in 0.75.4) | 2026-05-11 | [`df3a2cf`](https://github.com/sshkeda/pi-autocompact/commit/df3a2cf) |
 | 107–115 | `agent-session.js`, `sdk.js` | Threshold-continuation wiring so the agent stops between tool-use calls before context overflow | 2026-05-11 | [`df3a2cf`](https://github.com/sshkeda/pi-autocompact/commit/df3a2cf) |
 
 ### Retired — absorbed by upstream `pi-mono`
@@ -203,6 +204,7 @@ These never lived in `patches.json` directly; pi-patches loads them via [`source
 | [`pi-lane`](https://github.com/sshkeda/pi-lane) | Agent state refresh after input hooks for lane/session branching | `../pi-lane/patches/pi-patches.json` |
 | [`pi-sessions`](https://github.com/sshkeda/pi-sessions) | Short base64url session IDs and bare `--session <id>` resolution | `../pi-sessions/patches/pi-patches.json` |
 | [`pi-sync`](https://github.com/sshkeda/pi-sync) | `replayAgentEvent` for synced terminals replaying native UI events | `../pi-sync/patches/pi-patches.json` |
+| [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) | Extension tool lookup APIs and before-tool-call short-circuit support for provider-owned display tools | `../pi-claude-code/patches/pi-patches.json` |
 
 ## How it works
 

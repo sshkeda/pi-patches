@@ -14,5 +14,9 @@
   {
     "name": "pi-sync",
     "manifest": "../pi-sync/patches/pi-patches.json"
+  },
+  {
+    "name": "pi-claude-code",
+    "manifest": "../pi-claude-code/patches/pi-patches.json"
   }
 ]

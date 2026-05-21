@@ -350,23 +350,6 @@
     ]
   },
   {
-    "id": "106-agent-core-should-stop-agent-type-field",
-    "file": "node_modules/@earendil-works/pi-agent-core/dist/agent.d.ts",
-    "intent": "Expose the Agent.shouldStopAfterTurn instance field in typings to match runtime behavior.",
-    "find": "    beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;\n    afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;\n    prepareNextTurn?: (signal?: AbortSignal) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;\n    private activeRun?;",
-    "replace": "    beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;\n    afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) => Promise<AfterToolCallResult | undefined>;\n    shouldStopAfterTurn?: (context: import(\"./types.js\").ShouldStopAfterTurnContext) => boolean | Promise<boolean>;\n    prepareNextTurn?: (signal?: AbortSignal) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;\n    private activeRun?;",
-    "verify": "shouldStopAfterTurn?: (context: import(\"./types.js\").ShouldStopAfterTurnContext) => boolean | Promise<boolean>;",
-    "occurrences": 1,
-    "references": [
-      {
-        "type": "upstream-package",
-        "repo": "earendil-works/pi-mono",
-        "package": "@earendil-works/pi-agent-core",
-        "path": "dist/agent.d.ts"
-      }
-    ]
-  },
-  {
     "id": "107-autocompact-store-threshold-continuation-hook",
     "file": "dist/core/agent-session.js",
     "intent": "Store an optional callback that marks threshold compactions caused by tool-use preflight as continuations that should resume automatically after compacting.",
@@ -379,7 +362,8 @@
         "type": "upstream-package",
         "repo": "earendil-works/pi-mono",
         "package": "@earendil-works/pi-coding-agent",
-        "path": "dist/core/agent-session.js"
+        "path": "dist/core/agent-session.js",
+        "versionConsidered": "0.75.4"
       }
     ]
   },
@@ -396,7 +380,8 @@
         "type": "upstream-package",
         "repo": "earendil-works/pi-mono",
         "package": "@earendil-works/pi-coding-agent",
-        "path": "dist/core/agent-session.js"
+        "path": "dist/core/agent-session.js",
+        "versionConsidered": "0.75.4"
       }
     ]
   },
@@ -404,8 +389,8 @@
     "id": "109-autocompact-continue-after-tooluse-threshold-compaction",
     "file": "dist/core/agent-session.js",
     "intent": "When compaction was triggered by a preflight stop between tool-use turns, compact and then automatically continue instead of requiring another user prompt.",
-    "find": "        if (shouldCompact(contextTokens, contextWindow, settings)) {\n            await this._runAutoCompaction(\"threshold\", false);\n        }",
-    "replace": "        if (shouldCompact(contextTokens, contextWindow, settings)) {\n            const willRetry = this._continueAfterThresholdCompaction?.() === true;\n            await this._runAutoCompaction(\"threshold\", willRetry);\n        }",
+    "find": "        if (shouldCompact(contextTokens, contextWindow, settings)) {\n            return await this._runAutoCompaction(\"threshold\", false);\n        }",
+    "replace": "        if (shouldCompact(contextTokens, contextWindow, settings)) {\n            const willRetry = this._continueAfterThresholdCompaction?.() === true;\n            return await this._runAutoCompaction(\"threshold\", willRetry);\n        }",
     "verify": "const willRetry = this._continueAfterThresholdCompaction?.() === true;",
     "occurrences": 1,
     "references": [
@@ -413,7 +398,8 @@
         "type": "upstream-package",
         "repo": "earendil-works/pi-mono",
         "package": "@earendil-works/pi-coding-agent",
-        "path": "dist/core/agent-session.js"
+        "path": "dist/core/agent-session.js",
+        "versionConsidered": "0.75.4"
       }
     ]
   },
