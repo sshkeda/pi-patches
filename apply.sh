@@ -11,52 +11,62 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCHES_FILE="$SCRIPT_DIR/patches.json"
 SOURCES_FILE="$SCRIPT_DIR/sources.json"
 
-# Find pi's install location under the @earendil-works scope.
-PI_BIN="$(command -v pi || true)"
-if ! PI_PKG="$(node - "$PI_BIN" <<'NODE'
+# Find every visible pi install under the @earendil-works scope. Developers often
+# have both Homebrew and nvm pi binaries; patching only `command -v pi` lets one
+# terminal pass while another crashes at runtime.
+if ! PI_PKGS_RAW="$(node <<'NODE'
 const fs = require("fs");
 const path = require("path");
-const bin = process.argv[2];
+const { execFileSync } = require("child_process");
 const candidates = [];
-if (bin) {
+function add(candidate) {
+  if (!candidate) return;
+  try { candidate = fs.realpathSync(candidate); } catch {}
+  if (fs.existsSync(path.join(candidate, "package.json"))) candidates.push(candidate);
+}
+function addFromBin(bin) {
+  if (!bin) return;
   try {
     const realBin = fs.realpathSync(bin);
-    // npm bin points at <pkg>/dist/cli.js.
-    candidates.push(path.resolve(path.dirname(realBin), ".."));
+    add(path.resolve(path.dirname(realBin), ".."));
   } catch {}
-  const binDir = path.dirname(bin);
-  candidates.push(path.resolve(binDir, "../lib/node_modules/@earendil-works/pi-coding-agent"));
+  add(path.resolve(path.dirname(bin), "../lib/node_modules/@earendil-works/pi-coding-agent"));
 }
-candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
-for (const candidate of candidates) {
-  if (fs.existsSync(path.join(candidate, "package.json"))) {
-    console.log(candidate);
-    process.exit(0);
-  }
+try {
+  for (const bin of execFileSync("which", ["-a", "pi"], { encoding: "utf8" }).split(/\n+/).filter(Boolean)) addFromBin(bin);
+} catch {}
+const nvmRoot = path.join(process.env.HOME, ".nvm/versions/node");
+add(path.join(nvmRoot, process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
+for (const name of fs.existsSync(nvmRoot) ? fs.readdirSync(nvmRoot) : []) {
+  add(path.join(nvmRoot, name, "lib/node_modules/@earendil-works/pi-coding-agent"));
 }
-process.exit(1);
+const seen = new Set();
+const unique = candidates.filter((candidate) => !seen.has(candidate) && seen.add(candidate));
+if (unique.length === 0) process.exit(1);
+console.log(unique.join("\n"));
 NODE
 )"; then
   echo "ERROR: pi-coding-agent not found. Is pi installed?" >&2
   exit 1
 fi
 
+while IFS= read -r PI_PKG; do
 PI_VERSION=$(node -p "require('$PI_PKG/package.json').version")
-echo "→ Patching pi $PI_VERSION"
+echo "→ Patching pi $PI_VERSION at $PI_PKG"
 
 if ! PI_PKG="$PI_PKG" node -e 'require.resolve("unicodeit", { paths: [process.env.PI_PKG] })' >/dev/null 2>&1; then
   echo "→ Installing unicodeit for terminal LaTeX rendering"
   npm install --prefix "$PI_PKG" --no-save --omit=dev --ignore-scripts unicodeit@0.7.5 >/dev/null
 fi
 
-node --input-type=module << SCRIPT
+PI_PKG="$PI_PKG" SCRIPT_DIR="$SCRIPT_DIR" PATCHES_FILE="$PATCHES_FILE" SOURCES_FILE="$SOURCES_FILE" node --input-type=module <<'SCRIPT' 
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
-const piPkg = "$PI_PKG";
-const scriptDir = "$SCRIPT_DIR";
-const basePatchesFile = "$PATCHES_FILE";
-const sourcesFile = "$SOURCES_FILE";
+const piPkg = process.env.PI_PKG;
+const scriptDir = process.env.SCRIPT_DIR;
+const basePatchesFile = process.env.PATCHES_FILE;
+const sourcesFile = process.env.SOURCES_FILE;
 let errors = 0;
 
 const fileCache = new Map();
@@ -146,3 +156,4 @@ for (const [filePath, content] of fileCache) {
 
 console.log("→ All " + patches.length + " patch(es) applied ✓");
 SCRIPT
+done <<< "$PI_PKGS_RAW"

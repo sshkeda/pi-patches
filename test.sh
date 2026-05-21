@@ -5,32 +5,42 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-PI_BIN="$(command -v pi || true)"
-if ! PI_PKG="$(node - "$PI_BIN" <<'NODE'
+if [ -z "${PI_PKG-}" ]; then
+  if ! PI_PKGS_RAW="$(node <<'NODE'
 const fs = require("fs");
 const path = require("path");
-const bin = process.argv[2];
+const { execFileSync } = require("child_process");
 const candidates = [];
-if (bin) {
-  try {
-    const realBin = fs.realpathSync(bin);
-    candidates.push(path.resolve(path.dirname(realBin), ".."));
-  } catch {}
-  const binDir = path.dirname(bin);
-  candidates.push(path.resolve(binDir, "../lib/node_modules/@earendil-works/pi-coding-agent"));
+function add(candidate) {
+  if (!candidate) return;
+  try { candidate = fs.realpathSync(candidate); } catch {}
+  if (fs.existsSync(path.join(candidate, "package.json"))) candidates.push(candidate);
 }
-candidates.push(path.join(process.env.HOME, ".nvm/versions/node", process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
-for (const candidate of candidates) {
-  if (fs.existsSync(path.join(candidate, "package.json"))) {
-    console.log(candidate);
-    process.exit(0);
-  }
+function addFromBin(bin) {
+  if (!bin) return;
+  try { add(path.resolve(path.dirname(fs.realpathSync(bin)), "..")); } catch {}
+  add(path.resolve(path.dirname(bin), "../lib/node_modules/@earendil-works/pi-coding-agent"));
 }
-process.exit(1);
+try {
+  for (const bin of execFileSync("which", ["-a", "pi"], { encoding: "utf8" }).split(/\n+/).filter(Boolean)) addFromBin(bin);
+} catch {}
+const nvmRoot = path.join(process.env.HOME, ".nvm/versions/node");
+add(path.join(nvmRoot, process.version, "lib/node_modules/@earendil-works/pi-coding-agent"));
+for (const name of fs.existsSync(nvmRoot) ? fs.readdirSync(nvmRoot) : []) add(path.join(nvmRoot, name, "lib/node_modules/@earendil-works/pi-coding-agent"));
+const seen = new Set();
+const unique = candidates.filter((candidate) => !seen.has(candidate) && seen.add(candidate));
+if (unique.length === 0) process.exit(1);
+console.log(unique.join("\n"));
 NODE
 )"; then
-  echo "ERROR: pi-coding-agent not found. Is pi installed?" >&2
-  exit 1
+    echo "ERROR: pi-coding-agent not found. Is pi installed?" >&2
+    exit 1
+  fi
+  while IFS= read -r pkg; do
+    echo "→ Verifying pi install at $pkg"
+    PI_PKG="$pkg" bash "$0"
+  done <<< "$PI_PKGS_RAW"
+  exit 0
 fi
 
 PI_TUI="$PI_PKG/node_modules/@earendil-works/pi-tui"
@@ -338,7 +348,15 @@ function basicTheme(highlightCode = (code) => code, extra = {}) {
   assert("Extension types declare getToolDefinition handler", typesSource.includes("export type GetToolDefinitionHandler = (name: string) => ToolDefinition | undefined;"), "types.d.ts missing handler type");
   assert("Extension API declares getToolDefinition()", typesSource.includes("getToolDefinition(name: string): ToolDefinition | undefined;"), "types.d.ts missing API method");
   assert("Extension API declares getAllRegisteredTools()", typesSource.includes("getAllRegisteredTools(): RegisteredTool[];"), "types.d.ts missing registered-tools API method");
+  assert("Extension UI declares requestRender()", typesSource.includes("requestRender(): void;"), "types.d.ts missing requestRender UI API");
   assert("Extension context declares invokeTool()", typesSource.includes("export interface InvokeToolOptions") && typesSource.includes("invokeTool(name: string, args?: unknown, options?: InvokeToolOptions)"), "types.d.ts missing invokeTool context API");
+}
+
+{
+  const runnerSource = readFileSync(`${PI_PKG}/dist/core/extensions/runner.js`, "utf8");
+  const interactiveSource = readFileSync(`${PI_PKG}/dist/modes/interactive/interactive-mode.js`, "utf8");
+  assert("Extension UI non-interactive context exposes requestRender noop", runnerSource.includes("requestRender: () => { },"), "runner.js missing requestRender noop");
+  assert("Extension UI interactive context exposes requestRender", interactiveSource.includes("requestRender: () => this.ui.requestRender(),"), "interactive-mode.js missing requestRender binding");
 }
 
 {
