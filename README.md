@@ -26,7 +26,6 @@ It also acts as a patch orchestrator for sibling repos. Right now it loads:
 - **`../pi-read/patches/pi-patches.json`** — adds native `input_audio`, `video_url`, and `file` routing on Pi's OpenAI-compatible OpenRouter path
 - **`../pi-script/patches/pi-patches.json`** — preserves AgentSession-backed full tool-definition lookup for Pi Script's hidden-tool SDK delegation
 - **`../pi-sync/patches/pi-patches.json`** — refreshes agent state after input hooks and exposes native UI event replay hooks for synced Pi terminals
-- **`../pi-claude-code/patches/pi-patches.json`** — exposes extension tool lookup and provider-owned tool-result short-circuit hooks used by provider bridges
 
 ## Usage
 
@@ -204,7 +203,6 @@ These never lived in `patches.json` directly; pi-patches loads them via [`source
 | [`pi-lane`](https://github.com/sshkeda/pi-lane) | Agent state refresh after input hooks for lane/session branching | `../pi-lane/patches/pi-patches.json` |
 | [`pi-sessions`](https://github.com/sshkeda/pi-sessions) | Short base64url session IDs and bare `--session <id>` resolution | `../pi-sessions/patches/pi-patches.json` |
 | [`pi-sync`](https://github.com/sshkeda/pi-sync) | `replayAgentEvent` for synced terminals replaying native UI events | `../pi-sync/patches/pi-patches.json` |
-| [`pi-claude-code`](https://github.com/sshkeda/pi-claude-code) | Extension tool lookup APIs and before-tool-call short-circuit support for provider-owned display tools | `../pi-claude-code/patches/pi-patches.json` |
 
 ## How it works
 
@@ -219,7 +217,7 @@ These never lived in `patches.json` directly; pi-patches loads them via [`source
 
 `update.sh` is kept only for backwards compatibility with older aliases and delegates to `pi-update`.
 
-`upgrade.sh` is the explicit mutating updater used by the review session when the path is safe. It confirms first, then reinstalls Pi globally, runs `apply.sh`, and runs `test.sh`. In an agent-run session after safe verification, the confirmation can be supplied explicitly (for example, `printf 'y\n' | bash upgrade.sh`).
+`upgrade.sh` is the explicit mutating updater used by the review session when the path is safe. It confirms first, then reinstalls Pi globally, runs `apply.sh`, and runs `test.sh`. In an agent-harness session after safe verification, the confirmation can be supplied explicitly (for example, `printf 'y\n' | bash upgrade.sh`).
 
 `patches.json` defines local patches that live in this repo. `sources.json` points at additional patch manifests owned by sibling repos; `pi-update-extensions.json` is the expected-extension baseline used during update audits. `check.sh` validates local manifests/source data, external manifest availability, shell syntax, and JavaScript helper syntax without mutating the Pi install. `apply.sh` loads all patch manifests, locates pi's `@earendil-works/pi-coding-agent` install, applies everything atomically (no files written if any patch fails), and `test.sh` validates the upstream OSC 8 baseline, local hyperlink/runtime/reload/session patches, extension-runtime/tool-call behavior, OpenRouter multimodal routing behavior, and the autocompact patches' behavior via pi-mock.
 
