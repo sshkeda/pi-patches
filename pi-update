@@ -7,7 +7,7 @@
 #   pi-update [extra pi args...]
 #
 # Environment overrides:
-#   PI_UPDATE_MODEL=pi-codex/gpt-5.5-fast
+#   PI_UPDATE_MODEL=gpt-5.5-fast
 #   PI_UPDATE_THINKING=medium
 #   PI_UPDATE_PROMPT_FILE=/path/to/prompt.md
 # ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ if [ -z "$PI_BIN" ]; then
 fi
 
 # Optional global profile. Example ~/.pi/agent/pi-update.env:
-#   PI_UPDATE_MODEL=pi-codex/gpt-5.5-fast
+#   PI_UPDATE_MODEL=gpt-5.5-fast
 #   PI_UPDATE_THINKING=medium
 # Explicit environment variables from the shell win over this file.
 _PRE_MODEL_SET="${PI_UPDATE_MODEL+x}"
@@ -40,7 +40,7 @@ if [ -n "$_PRE_MODEL_SET" ]; then PI_UPDATE_MODEL="$_PRE_MODEL"; fi
 if [ -n "$_PRE_THINKING_SET" ]; then PI_UPDATE_THINKING="$_PRE_THINKING"; fi
 if [ -n "$_PRE_PROMPT_FILE_SET" ]; then PI_UPDATE_PROMPT_FILE="$_PRE_PROMPT_FILE"; fi
 
-MODEL="${PI_UPDATE_MODEL:-pi-codex/gpt-5.5-fast}"
+MODEL="${PI_UPDATE_MODEL:-}"
 THINKING="${PI_UPDATE_THINKING:-medium}"
 PROMPT_FILE="${PI_UPDATE_PROMPT_FILE:-$SCRIPT_DIR/PI_UPDATE_PROMPT.md}"
 
@@ -51,9 +51,17 @@ fi
 PROMPT="$(cat "$PROMPT_FILE")"
 
 echo "→ Launching pi-update review session in $SCRIPT_DIR"
-echo "→ Model: $MODEL, thinking: $THINKING"
+if [ -n "$MODEL" ]; then
+  echo "→ Model: $MODEL, thinking: $THINKING"
+else
+  echo "→ Model: Pi default, thinking: $THINKING"
+fi
 echo "→ Prompt: $PROMPT_FILE"
 echo "→ The editor will be prefilled; press Enter/Return when you want to send it."
 cd "$SCRIPT_DIR"
 export PI_UPDATE_PREFILL_PROMPT="$PROMPT"
-exec "$PI_BIN" --model "$MODEL" --thinking "$THINKING" --extension "$SCRIPT_DIR/pi-update-prefill-extension.js" "$@"
+if [ -n "$MODEL" ]; then
+  exec "$PI_BIN" --model "$MODEL" --thinking "$THINKING" --extension "$SCRIPT_DIR/pi-update-prefill-extension.js" "$@"
+else
+  exec "$PI_BIN" --thinking "$THINKING" --extension "$SCRIPT_DIR/pi-update-prefill-extension.js" "$@"
+fi

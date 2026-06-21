@@ -45,7 +45,7 @@ bash update.sh
 
 Defaults:
 
-- model: `pi-codex/gpt-5.5-fast`
+- model: Pi default unless `PI_UPDATE_MODEL` is set
 - reasoning/thinking: `medium`
 - prompt file: `PI_UPDATE_PROMPT.md`
 - changelog: <https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md>
@@ -55,7 +55,7 @@ Configure defaults globally with an optional profile file:
 ```bash
 mkdir -p ~/.pi/agent
 cat > ~/.pi/agent/pi-update.env <<'EOF'
-PI_UPDATE_MODEL=pi-codex/gpt-5.5-fast
+PI_UPDATE_MODEL=gpt-5.5-fast
 PI_UPDATE_THINKING=medium
 EOF
 ```
@@ -63,7 +63,7 @@ EOF
 Override from zsh or any shell when needed; explicit environment variables win over the profile file:
 
 ```bash
-PI_UPDATE_MODEL='pi-codex/gpt-5.5-fast' PI_UPDATE_THINKING=medium pi-update
+PI_UPDATE_MODEL='gpt-5.5-fast' PI_UPDATE_THINKING=medium pi-update
 PI_UPDATE_PROMPT_FILE=/path/to/custom-prompt.md pi-update
 ```
 
